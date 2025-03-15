@@ -1,9 +1,13 @@
 import { Hono } from 'hono'
+import { cors } from 'hono/cors'
+import 'dotenv/config';
+import {authRoute} from "./routes/AuthRoute";
 
 const app = new Hono()
 
-app.get('/', (c) => {
-  return c.text('Hello Hono!')
-})
+app.route('/auth/', authRoute)
 
-export default app
+export default {
+  fetch: app.fetch,
+  port: process.env.PORT,
+}
