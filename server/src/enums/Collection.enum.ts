@@ -1,3 +1,4 @@
-export enum Collection {
-    users
+export enum ECollection {
+    users,
+    tokens
 }
