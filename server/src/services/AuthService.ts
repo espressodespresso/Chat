@@ -1,10 +1,11 @@
 import {IMongoService, MongoResponse} from "./MongoService";
 import {ServiceFactory} from "./ServiceFactory";
 import {ECollection} from "../enums/Collection.enum";
-import {hash, compare} from "bcrypt-ts"
-import {sign} from "hono/jwt"
+import {compare, hash} from "bcrypt-ts"
 import {ContentfulStatusCode} from "hono/dist/types/utils/http-status";
 import {ITokenPayload, ITokenService} from "./TokenService";
+import {ILogService} from "./LogService";
+import {ELogEvent} from "../enums/LogEvent.enum";
 
 export interface IAuthService {
     login(username: string, password: string): Promise<IAuthResponse>;
@@ -35,10 +36,12 @@ const AuthServiceMessages = {
 export class AuthService implements IAuthService {
     private _mongoService: IMongoService;
     private _tokenService: ITokenService;
+    private _logService: ILogService;
 
     constructor() {
         this._mongoService = ServiceFactory.createMongoService();
         this._tokenService = ServiceFactory.createTokenService();
+        this._logService = ServiceFactory.createLogService();
     }
 
     private authResponse(status: boolean, message: string, code: ContentfulStatusCode, token?: ITokenPayload): IAuthResponse {
@@ -61,6 +64,11 @@ export class AuthService implements IAuthService {
         })
 
         if(response["status"]) {
+            await this._logService.addLog({
+                timestamp: new Date(Date.now()),
+                event: ELogEvent.user_signup,
+                username: username
+            });
             return this.authResponse(true, AuthServiceMessages.SIGNUP_SUCCESS, 200);
         }
 
@@ -75,6 +83,11 @@ export class AuthService implements IAuthService {
 
         const hashedPassword: string = data["password"];
         if(await compare(password, hashedPassword)) {
+            await this._logService.addLog({
+                timestamp: new Date(Date.now()),
+                event: ELogEvent.user_login,
+                username: username
+            });
             return this.authResponse(true, AuthServiceMessages.LOGIN_SUCCESS, 200, await this._tokenService.generateLoginTokens(data));
         } else {
             return this.authResponse(false, AuthServiceMessages.LOGIN_INCORRECT, 401)

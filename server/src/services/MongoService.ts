@@ -6,6 +6,7 @@ export interface IMongoService {
     findOne(query: object, collection: ECollection): Promise<MongoResponse>;
     findall(collection: ECollection): Promise<MongoResponse>;
     insertOne(data: object, collection: ECollection): Promise<MongoResponse>;
+    insertMany(data: any[], collection: ECollection): Promise<MongoResponse>;
     deleteOne(query: object, collection: ECollection): Promise<MongoResponse>;
     deleteMany(query: object, collection: ECollection): Promise<MongoResponse>;
     updateOne(filter: object, data: object, collection: ECollection): Promise<MongoResponse>;
@@ -26,6 +27,8 @@ export class MongoService implements IMongoService {
     private _database = this._client.db('database');
     private _usersCollection = this._database.collection('users');
     private _tokensCollection = this._database.collection('tokens');
+    private _offline_messagesCollection = this._database.collection('offline_messages');
+    private _logsCollection = this._database.collection('logs');
 
     private getCollection(collection: ECollection): any {
         switch (collection) {
@@ -33,7 +36,10 @@ export class MongoService implements IMongoService {
                 return this._usersCollection;
             case ECollection.tokens:
                 return this._tokensCollection;
-
+            case ECollection.offline_messages:
+                return this._offline_messagesCollection;
+            case ECollection.logs:
+                return this._logsCollection;
         }
     }
 
@@ -64,6 +70,15 @@ export class MongoService implements IMongoService {
 
     async insertOne(data: object, collection: ECollection): Promise<MongoResponse> {
         const result = await this.getCollection(collection).insertOne(data);
+        if(!result.acknowledged) {
+            return this.objResponse(false, null);
+        }
+
+        return this.objResponse(true, result);
+    }
+
+    async insertMany(data: [], collection: ECollection): Promise<MongoResponse> {
+        const result = await this.getCollection(collection).insertMany(data);
         if(!result.acknowledged) {
             return this.objResponse(false, null);
         }

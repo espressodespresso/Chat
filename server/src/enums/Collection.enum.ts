@@ -1,4 +1,6 @@
 export enum ECollection {
     users,
-    tokens
+    tokens,
+    offline_messages,
+    logs
 }
