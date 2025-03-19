@@ -7,9 +7,10 @@ import {JWTPayload} from "hono/dist/types/utils/jwt/types";
 import {ContentfulStatusCode} from "hono/dist/types/utils/http-status";
 
 export interface ITokenService {
-    generateLoginTokens(data: IUserDetails): Promise<ITokenPayload>
-    generateNewAuth(data: ITokenPayload): Promise<ITokenPayload>
-    revokeRefreshToken(data: ITokenPayload): Promise<ITokenPayload>
+    generateLoginTokens(data: IUserDetails): Promise<ITokenPayload>;
+    generateNewAuth(data: ITokenPayload): Promise<ITokenPayload>;
+    revokeRefreshToken(data: ITokenPayload): Promise<ITokenPayload>;
+    verifyAccessToken(access_token: string): Promise<boolean>;
 }
 
 export interface ITokenPayload {
@@ -40,6 +41,15 @@ export class TokenService implements ITokenService{
     private async verifyRefreshToken(refresh_token: string): Promise<boolean> {
         try {
             await verify(refresh_token, (process.env.REFRESH_TOKEN_SECRET as string));
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    async verifyAccessToken(access_token: string): Promise<boolean> {
+        try {
+            await verify(access_token, (process.env.ACCESS_TOKEN_SECRET as string));
             return true;
         } catch (error) {
             return false;

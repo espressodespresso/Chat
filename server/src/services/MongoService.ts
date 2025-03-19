@@ -27,7 +27,7 @@ export class MongoService implements IMongoService {
     private _database = this._client.db('database');
     private _usersCollection = this._database.collection('users');
     private _tokensCollection = this._database.collection('tokens');
-    private _offline_messagesCollection = this._database.collection('offline_messages');
+    private _messagesCollection = this._database.collection('messages');
     private _logsCollection = this._database.collection('logs');
 
     private getCollection(collection: ECollection): any {
@@ -36,8 +36,8 @@ export class MongoService implements IMongoService {
                 return this._usersCollection;
             case ECollection.tokens:
                 return this._tokensCollection;
-            case ECollection.offline_messages:
-                return this._offline_messagesCollection;
+            case ECollection.messages:
+                return this._messagesCollection;
             case ECollection.logs:
                 return this._logsCollection;
         }
