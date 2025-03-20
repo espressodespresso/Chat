@@ -1,12 +1,14 @@
 import {IMongoService, MongoResponse} from "./MongoService";
 import {ServiceFactory} from "./ServiceFactory";
 import {ECollection} from "../enums/Collection.enum";
-import {IUserDetails} from "./AuthService";
 import {ServerWebSocket} from "bun";
+import {ELogServiceEvent} from "../enums/LogEvent.enum";
+import {ILogService} from "./LogService";
+import {IUserDetails} from "./AccountService";
 
 export interface ISocketService {
-    addConnection(client: IUserSocket): string;
-    removeConnection(client: IUserSocket): string;
+    addConnection(client: IUserSocket): Promise<string>;
+    removeConnection(client: IUserSocket): Promise<string>;
     sendToAllActive(message: ISocketMessage): void;
     sendToAll(message: ISocketMessage): Promise<boolean>
     sendToUsername(message: ISocketMessage): Promise<boolean>;
@@ -28,20 +30,32 @@ export class SocketService implements ISocketService {
     private _activeConnections: Map<string, ServerWebSocket>;
     private _mongoService: IMongoService;
     private _textEncoder: TextEncoder;
+    private _logService: ILogService;
 
     constructor() {
         this._activeConnections = new Map<string, ServerWebSocket>();
         this._mongoService = ServiceFactory.createMongoService();
         this._textEncoder = new TextEncoder();
+        this._logService = ServiceFactory.createLogService();
     }
 
-    addConnection(client: IUserSocket): string {
+    async addConnection(client: IUserSocket): Promise<string> {
         this._activeConnections.set(client["username"], client["socket"]);
+        await this._logService.addLog({
+            timestamp: new Date(Date.now()),
+            event: ELogServiceEvent.SOCKET_OPENED,
+            username: client["username"]
+        });
         return `${client["username"]} connected...`
     }
 
-    removeConnection(client: IUserSocket): string {
+    async removeConnection(client: IUserSocket): Promise<string> {
         this._activeConnections.delete(client["username"]);
+        await this._logService.addLog({
+            timestamp: new Date(Date.now()),
+            event: ELogServiceEvent.SOCKET_CLOSE,
+            username: client["username"]
+        });
         return `${client["username"]} disconnected...`;
     }
 
@@ -64,6 +78,13 @@ export class SocketService implements ISocketService {
                     message: message["message"],
                     timestamp: new Date(Date.now()),
                 };
+
+                await this._logService.addLog({
+                    timestamp: new Date(Date.now()),
+                    event: ELogServiceEvent.SOCKET_MESSAGE,
+                    username: "Server",
+                    recipient_username: "All"
+                });
 
                 socket.sendBinary(this._textEncoder.encode(JSON.stringify(data)));
                 messageData.push(data);
@@ -103,6 +124,13 @@ export class SocketService implements ISocketService {
                         timestamp: new Date(Date.now()),
                     }
 
+                    await this._logService.addLog({
+                        timestamp: new Date(Date.now()),
+                        event: ELogServiceEvent.SOCKET_MESSAGE,
+                        username: "Server",
+                        recipient_username: "All"
+                    });
+
                     messageData.push(data);
                 }
 
@@ -121,6 +149,12 @@ export class SocketService implements ISocketService {
             const userSocket: ServerWebSocket = this._activeConnections.get(recipientUsername) as ServerWebSocket;
             if(userSocket.readyState === 1) {
                 userSocket.sendBinary(this._textEncoder.encode(JSON.stringify(message)));
+                await this._logService.addLog({
+                    timestamp: new Date(Date.now()),
+                    event: ELogServiceEvent.SOCKET_MESSAGE,
+                    username: message["senderUsername"],
+                    recipient_username: recipientUsername
+                });
                 return true;
             }
 

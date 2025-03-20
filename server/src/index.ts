@@ -13,7 +13,7 @@ app.use('/account/*', jwt({ secret: (process.env.ACCESS_TOKEN_SECRET as string) 
 app.route('/account', accountRoute);
 
 app.use('/socket/*', jwt({ secret: (process.env.ACCESS_TOKEN_SECRET as string) }));
-app.route('/account', socketRoute);
+app.route('/socket', socketRoute);
 
 export default {
   fetch: app.fetch,

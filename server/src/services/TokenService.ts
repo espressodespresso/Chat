@@ -1,10 +1,12 @@
-import {IUserDetails} from "./AuthService";
 import {decode, sign, verify} from "hono/jwt"
 import {IMongoService, MongoResponse} from "./MongoService";
 import {ECollection} from "../enums/Collection.enum";
 import {ServiceFactory} from "./ServiceFactory";
 import {JWTPayload} from "hono/dist/types/utils/jwt/types";
 import {ContentfulStatusCode} from "hono/dist/types/utils/http-status";
+import {ELogServiceEvent} from "../enums/LogEvent.enum";
+import {ILogService} from "./LogService";
+import {IUserDetails} from "./AccountService";
 
 export interface ITokenService {
     generateLoginTokens(data: IUserDetails): Promise<ITokenPayload>;
@@ -18,6 +20,7 @@ export interface ITokenPayload {
     refresh_token?: string;
     response?: MongoResponse;
     code?: ContentfulStatusCode;
+    username?: string;
 }
 
 const TokenServiceMessages = {
@@ -33,9 +36,16 @@ const TokenServiceMessages = {
 
 export class TokenService implements ITokenService{
     private _mongoService: IMongoService;
+    private _logService: ILogService;
 
     constructor() {
         this._mongoService = ServiceFactory.createMongoService();
+        this._logService = ServiceFactory.createLogService();
+    }
+
+    private getUsernameFromRefresh(refresh_token: string): string {
+        const refreshPayload: JWTPayload = decode(refresh_token).payload;
+        return refreshPayload["data"] as string;
     }
 
     private async verifyRefreshToken(refresh_token: string): Promise<boolean> {
@@ -77,9 +87,16 @@ export class TokenService implements ITokenService{
                     }
                 }
 
+                const username: string = this.getUsernameFromRefresh(refresh_token);
+                await this._logService.addLog({
+                    timestamp: new Date(Date.now()),
+                    event: ELogServiceEvent.USER_LOGOUT,
+                    username: username
+                });
                 return {
                     response: this._mongoService.objResponse(true, TokenServiceMessages.SUCCESS_REVOKE_REFRESH_TOKEN),
-                    code: 200
+                    code: 200,
+                    username: username
                 }
             })
         } catch (error) {
@@ -111,8 +128,7 @@ export class TokenService implements ITokenService{
                     };
                 }
 
-                const refreshPayload: JWTPayload = decode(refresh_token).payload;
-                const username: string = (refreshPayload["data"] as string);
+                const username: string = this.getUsernameFromRefresh(refresh_token);
                 const userQuery = { username: username };
                 response = await this._mongoService.findOne(userQuery, ECollection.users);
                 if(!response["status"]) {
@@ -133,6 +149,11 @@ export class TokenService implements ITokenService{
 
                 let returnPayload: ITokenPayload = await this.generateLoginTokens(data);
                 returnPayload["code"] = 200;
+                await this._logService.addLog({
+                    timestamp: new Date(Date.now()),
+                    event: ELogServiceEvent.REFRESH_TOKEN,
+                    username: username
+                });
                 return returnPayload;
             })
         } catch (error) {
@@ -183,7 +204,8 @@ export class TokenService implements ITokenService{
         return {
             access_token: token,
             refresh_token: refreshToken,
-            response: response
+            response: response,
+            username: data["username"]
         };
     }
 }

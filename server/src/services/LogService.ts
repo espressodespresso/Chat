@@ -1,9 +1,10 @@
 import {IMongoService, MongoResponse} from "./MongoService";
 import {ServiceFactory} from "./ServiceFactory";
-import {ELogEvent} from "../enums/LogEvent.enum";
 import {ECollection} from "../enums/Collection.enum";
 import {IGeneralUtility} from "../utility/General.utility";
 import {generalUtility} from "../utility/UtilityModule";
+import {ELogRequestEvent, ELogRouteEvent, ELogServiceEvent} from "../enums/LogEvent.enum";
+import {ContentfulStatusCode} from "hono/dist/types/utils/http-status";
 
 export interface ILogService {
     addLog(data: ILogData): Promise<boolean>;
@@ -12,10 +13,12 @@ export interface ILogService {
 export interface ILogData {
     log_id?: string,
     timestamp: Date,
-    event: ELogEvent,
-    username: string,
+    event: ELogServiceEvent | ELogRequestEvent,
+    route?: ELogRouteEvent,
+    username?: string,
     message?: string,
     recipient_username?: string,
+    status_code?: ContentfulStatusCode
 }
 
 export class LogService implements ILogService {
@@ -36,4 +39,6 @@ export class LogService implements ILogService {
 
         return response["status"];
     }
+
+
 }

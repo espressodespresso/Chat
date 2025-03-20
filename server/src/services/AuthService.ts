@@ -5,11 +5,13 @@ import {compare, hash} from "bcrypt-ts"
 import {ContentfulStatusCode} from "hono/dist/types/utils/http-status";
 import {ITokenPayload, ITokenService} from "./TokenService";
 import {ILogService} from "./LogService";
-import {ELogEvent} from "../enums/LogEvent.enum";
+import {ELogServiceEvent} from "../enums/LogEvent.enum";
+import {IAccountService, IUserDetails} from "./AccountService";
+import {IGenericResponse} from "../utility/General.utility";
 
 export interface IAuthService {
     login(username: string, password: string): Promise<IAuthResponse>;
-    signup(username: string, password: string): Promise<IAuthResponse>;
+    signup(username: string, password: string, email: string): Promise<IAuthResponse>;
 }
 
 export interface IAuthResponse {
@@ -17,11 +19,6 @@ export interface IAuthResponse {
     message: string;
     code: ContentfulStatusCode;
     token?: ITokenPayload;
-}
-
-export interface IUserDetails {
-    username: string;
-    password: string;
 }
 
 const AuthServiceMessages = {
@@ -37,74 +34,45 @@ export class AuthService implements IAuthService {
     private _mongoService: IMongoService;
     private _tokenService: ITokenService;
     private _logService: ILogService;
+    private _accountService: IAccountService;
 
     constructor() {
         this._mongoService = ServiceFactory.createMongoService();
         this._tokenService = ServiceFactory.createTokenService();
         this._logService = ServiceFactory.createLogService();
+        this._accountService = ServiceFactory.createAccountService();
     }
 
     private authResponse(status: boolean, message: string, code: ContentfulStatusCode, token?: ITokenPayload): IAuthResponse {
         return token !== undefined ? { status, message, code, token } : { status, message, code };
     }
 
-    async signup(username: string, password: string): Promise<IAuthResponse> {
-        if(await this.getDetails(username)) {
-            return this.authResponse(false, AuthServiceMessages.SIGNUP_EXISTS, 409);
-        }
-
-        const data = {
-            username: username,
-            password: await hash(password, 10)
-        }
-
-        const response: MongoResponse = await this._mongoService.handleConnection
-        (async (): Promise<MongoResponse> => {
-            return await this._mongoService.insertOne(data, ECollection.users);
-        })
-
-        if(response["status"]) {
-            await this._logService.addLog({
-                timestamp: new Date(Date.now()),
-                event: ELogEvent.user_signup,
-                username: username
-            });
-            return this.authResponse(true, AuthServiceMessages.SIGNUP_SUCCESS, 200);
-        }
-
-        return this.authResponse(false, AuthServiceMessages.SIGNUP_FAILURE, 401);
+    async signup(username: string, password: string, email: string): Promise<IAuthResponse> {
+        const accountResponse: IGenericResponse = await this._accountService.createAccount(username, password, email);
+        const message: string = accountResponse["result"] as string;
+        const code: ContentfulStatusCode = accountResponse["code"] as ContentfulStatusCode;
+        return this.authResponse(accountResponse["status"], message, code);
     }
 
     async login(username: string, password: string): Promise<IAuthResponse> {
-        const data: IUserDetails | null = await this.getDetails(username);
-        if(data === null || typeof data === null) {
+        const accountResponse: IGenericResponse = await this._accountService.getAccountDetails(username);
+        if(!accountResponse["result"]) {
             return this.authResponse(false, AuthServiceMessages.LOGIN_FAILURE, 401);
         }
+
+        const data: IUserDetails = accountResponse["result"] as IUserDetails;
 
         const hashedPassword: string = data["password"];
         if(await compare(password, hashedPassword)) {
             await this._logService.addLog({
                 timestamp: new Date(Date.now()),
-                event: ELogEvent.user_login,
+                event: ELogServiceEvent.USER_LOGIN,
                 username: username
             });
+
             return this.authResponse(true, AuthServiceMessages.LOGIN_SUCCESS, 200, await this._tokenService.generateLoginTokens(data));
         } else {
             return this.authResponse(false, AuthServiceMessages.LOGIN_INCORRECT, 401)
-        }
-    }
-
-    async getDetails(username: string): Promise<IUserDetails | null> {
-        const response: MongoResponse = await this._mongoService.handleConnection
-        (async (): Promise<MongoResponse> => {
-            const query = { username: username };
-            return await this._mongoService.findOne(query, ECollection.users);
-        })
-
-        if(response["status"]) {
-            return response["result"];
-        } else {
-            return null;
         }
     }
 }
