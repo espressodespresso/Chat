@@ -29,6 +29,7 @@ export class MongoService implements IMongoService {
     private _tokensCollection = this._database.collection('tokens');
     private _messagesCollection = this._database.collection('messages');
     private _logsCollection = this._database.collection('logs');
+    private _chatsCollection = this._database.collection('chats');
 
     private getCollection(collection: ECollection): any {
         switch (collection) {
@@ -40,6 +41,8 @@ export class MongoService implements IMongoService {
                 return this._messagesCollection;
             case ECollection.logs:
                 return this._logsCollection;
+            case ECollection.chats:
+                return this._chatsCollection;
         }
     }
 

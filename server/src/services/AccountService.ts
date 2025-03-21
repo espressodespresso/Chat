@@ -6,14 +6,7 @@ import {ECollection} from "../enums/Collection.enum";
 import {ILogService} from "./LogService";
 import {ELogServiceEvent} from "../enums/LogEvent.enum";
 import {hash} from "bcrypt-ts";
-
-
-export interface IChatDetails {
-    chat_id: string;
-    user_id: string;
-    username: string;
-    date_added: Date;
-}
+import {IChatDetails, IChatUser} from "./ChatService";
 
 export interface IUserOptions {
     theme: boolean;
@@ -25,7 +18,8 @@ export interface IUserDetails {
     username: string;
     password: string;
     email: string;
-    friend_list: IChatDetails[];
+    chat_list: string[];
+    friend_list: IChatUser[];
     last_seen: Date;
     online: boolean;
     options: IUserOptions;
@@ -34,12 +28,18 @@ export interface IUserDetails {
 export interface IAccountService {
     createAccount(username: string, password: string, email: string): Promise<IGenericResponse>;
     getAccountDetails(username: string): Promise<IGenericResponse>;
+    updateAccountDetails(data: IUserDetails): Promise<IGenericResponse>;
+    updateUserOptions(username: string, data: IUserOptions): Promise<IGenericResponse>
 }
 
 const AccountServiceMessages = {
     ACCOUNT_EXISTS: "Account with credentials already exists.",
     SIGNUP_SUCCESS: "User created successfully.",
-    SIGNUP_FAILURE: "Unable to create account."
+    SIGNUP_FAILURE: "Unable to create account.",
+    UPDATE_DETAILS_FAILURE: "Unable to update account details.",
+    UPDATE_DETAILS_SUCCESS: "Account details updated successfully.",
+    UPDATE_OPTIONS_FAILURE: "Unable to update account options.",
+    UPDATE_OPTIONS_SUCCESS: "Account options updated successfully.",
 }
 
 const ValidationMessages = {
@@ -77,6 +77,7 @@ export class AccountService implements IAccountService {
             username: username,
             password: await hash(password, 10),
             email: email,
+            chat_list: [],
             friend_list: [],
             last_seen: new Date(Date.now()),
             online: false,
@@ -121,6 +122,57 @@ export class AccountService implements IAccountService {
         }
 
         return this._generalUtility.genericResponse(false, null);
+    }
+
+    async updateAccountDetails(data: IUserDetails): Promise<IGenericResponse> {
+        const username: string = data["username"];
+        const inputValidationResponse: IGenericResponse = this.inputValidation(username, data["password"], data["email"]);
+        if(!inputValidationResponse["status"]) {
+            return inputValidationResponse;
+        }
+
+        const response: MongoResponse = await this._mongoService.handleConnection
+        (async (): Promise<MongoResponse> => {
+            const query = { username: username };
+            const response: MongoResponse = await this._mongoService.findOne(query, ECollection.users);
+            if(!response["status"]) {
+                return this._generalUtility.genericResponse(false, AccountServiceMessages.ACCOUNT_EXISTS, 400);
+            }
+
+            return await this._mongoService.insertOne(data, ECollection.users);
+        })
+
+        if(response["status"]) {
+            return this._generalUtility.genericResponse(true, AccountServiceMessages.SIGNUP_SUCCESS, 200);
+        }
+
+        return this._generalUtility.genericResponse(false, AccountServiceMessages.UPDATE_DETAILS_FAILURE, 400);
+    }
+
+    async updateUserOptions(username: string, data: IUserOptions): Promise<IGenericResponse> {
+        const response: MongoResponse = await this._mongoService.handleConnection
+        (async (): Promise<MongoResponse> => {
+            const query = { username: username };
+            const response: MongoResponse = await this._mongoService.findOne(query, ECollection.users);
+
+            if(!response["status"]) {
+                return this._generalUtility.genericResponse(false, AccountServiceMessages.ACCOUNT_EXISTS, 400);
+            }
+
+            const update = {
+                $set: {
+                    options: data
+                }
+            };
+
+            return await this._mongoService.updateOne(query, update, ECollection.users);
+        });
+
+        if(response["status"]) {
+            return this._generalUtility.genericResponse(true, AccountServiceMessages.UPDATE_OPTIONS_SUCCESS, 200);
+        }
+
+        return this._generalUtility.genericResponse(false, AccountServiceMessages.UPDATE_OPTIONS_FAILURE, 200);
     }
 
     private inputValidation(username: string, password: string, email: string): IGenericResponse {

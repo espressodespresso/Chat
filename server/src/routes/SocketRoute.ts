@@ -1,5 +1,4 @@
 import {Hono} from "hono";
-import {IUserDetails} from "../services/AuthService";
 import {ISocketMessage, ISocketService} from "../services/SocketService";
 import {ServiceFactory} from "../services/ServiceFactory";
 import {createBunWebSocket} from "hono/bun";

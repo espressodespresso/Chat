@@ -2,5 +2,6 @@ export enum ECollection {
     users,
     tokens,
     messages,
-    logs
+    logs,
+    chats
 }
