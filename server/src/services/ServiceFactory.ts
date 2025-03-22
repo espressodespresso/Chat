@@ -4,6 +4,8 @@ import {AccountService} from "./AccountService";
 import {TokenService} from "./TokenService";
 import {SocketService} from "./SocketService";
 import {LogService} from "./LogService";
+import {FriendService} from "./FriendService";
+import {ChatService} from "./ChatService";
 
 export class ServiceFactory {
     static createMongoService(): MongoService {
@@ -28,5 +30,13 @@ export class ServiceFactory {
 
     static createLogService(): LogService {
         return new LogService();
+    }
+
+    static createFriendService(): FriendService {
+        return new FriendService();
+    }
+
+    static createChatService(): ChatService {
+        return new ChatService();
     }
 }

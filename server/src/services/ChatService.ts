@@ -3,6 +3,7 @@ import {ServiceFactory} from "./ServiceFactory";
 import {IGeneralUtility, IGenericResponse} from "../utility/General.utility";
 import {generalUtility} from "../utility/UtilityModule";
 import {ECollection} from "../enums/Collection.enum";
+import {IAccountService, IUserDetails} from "./AccountService";
 
 export interface IChatDetails {
     chat_id: string;
@@ -19,7 +20,13 @@ export interface IChatUser {
 }
 
 export interface IChatService {
-
+    createChat(chat_name: string, creator_user: IChatUser, users: IChatUser[]): Promise<IGenericResponse>;
+    changeChatName(chat_id: string, user: IChatUser, new_name: string): Promise<IGenericResponse>;
+    addAdmin(chat_id: string, request_user: IChatUser, recipient_user: IChatUser): Promise<IGenericResponse>;
+    removeAdmin(chat_id: string, request_user: IChatUser, recipient_user: IChatUser): Promise<IGenericResponse>;
+    addUser(chat_id: string, request_user: IChatUser, recipient_user: IChatUser): Promise<IGenericResponse>;
+    removeUser(chat_id: string, request_user: IChatUser, recipient_user: IChatUser): Promise<IGenericResponse>;
+    deleteChat(chat_id: string, request_user: IChatUser): Promise<IGenericResponse>;
 }
 
 const ChatServiceMessages = {
@@ -38,16 +45,25 @@ const ChatServiceMessages = {
     CANNOT_ADD_YOURSELF: "Unable to add yourself to the chat.",
     ADD_ADMIN_SUCCESS: "Successfully added admin to the chat.",
     ADD_ADMIN_FAILURE: "Unable to add user within that chat.",
-    CANNOT_REMOVE_YOURSELF: "Unable to remove yourself from the chat"
+    CANNOT_REMOVE_YOURSELF: "Unable to remove yourself from the chat",
+    REMOVE_ADMIN_SUCCESS: "Successfully removed admin from the chat.",
+    REMOVE_ADMIN_FAILURE: "Unable to remove admin from the chat.",
+    REMOVE_USER_SUCCESS: "Successfully removed user from the chat.",
+    REMOVE_USER_FAILURE: "Unable to remove user from the chat.",
+    USER_NOT_AUTHOR: "Unable to delete chat as user is not the chat author.",
+    UNABLE_LOCATE_USER: "Could not locate user within chat, skipping...",
+    DELETE_CHAT_SUCCESS: "Successfully deleted the chat."
 }
 
 export class ChatService implements IChatService {
     private _mongoService: IMongoService;
     private _generalUtility: IGeneralUtility;
+    private _accountService: IAccountService;
 
     constructor() {
         this._mongoService = ServiceFactory.createMongoService();
         this._generalUtility = generalUtility;
+        this._accountService = ServiceFactory.createAccountService();
     }
 
     async createChat(chat_name: string, creator_user: IChatUser, users: IChatUser[]): Promise<IGenericResponse> {
@@ -123,16 +139,7 @@ export class ChatService implements IChatService {
     }
 
     async addAdmin(chat_id: string, request_user: IChatUser, recipient_user: IChatUser): Promise<IGenericResponse> {
-        if(request_user === recipient_user) {
-            return this._generalUtility.genericResponse(false, ChatServiceMessages.CANNOT_ADD_YOURSELF, 400);
-        }
-
-        let verifyResponse: IGenericResponse = await this.verifyUserAccess(chat_id, request_user, true);
-        if(!verifyResponse["status"]) {
-            return verifyResponse;
-        }
-
-        verifyResponse = await this.verifyUserAccess(chat_id, recipient_user, true);
+        const verifyResponse: IGenericResponse = await this.adminCRUDChecks(chat_id, request_user, recipient_user, true);
         if(!verifyResponse["status"]) {
             if(verifyResponse["result"] === ChatServiceMessages.USER_NOT_ADMIN) {
                 const response: IGenericResponse = await this._mongoService.handleConnection
@@ -160,16 +167,36 @@ export class ChatService implements IChatService {
         return verifyResponse;
     }
 
-    /*async removeAdmin(chat_id: string, request_user: IChatUser, recipient_user: IChatUser): Promise<IGenericResponse> {
-        if(request_user === recipient_user) {
-            return this._generalUtility.genericResponse(false, ChatServiceMessages.CANNOT_REMOVE_YOURSELF, 400);
+    async removeAdmin(chat_id: string, request_user: IChatUser, recipient_user: IChatUser): Promise<IGenericResponse> {
+        const verifyResponse: IGenericResponse = await this.adminCRUDChecks(chat_id, request_user, recipient_user, false);
+        if(verifyResponse["status"]) {
+            const response: MongoResponse = await this._mongoService.handleConnection
+            (async (): Promise<MongoResponse> => {
+                const query = { chat_id: chat_id };
+                const response: MongoResponse = await this._mongoService.findOne(query, ECollection.chats);
+                const admin: IChatUser[] = (response["result"] as IChatDetails)["admin"];
+                const adminSet: Set<IChatUser> = new Set(admin);
+                adminSet.delete(recipient_user);
+                const update = {
+                    $set: {
+                        admin: Array.from(adminSet)
+                    }
+                };
+                return await this._mongoService.updateOne(query, update, ECollection.chats);
+            })
+
+            if(response["status"]) {
+                return this._generalUtility.genericResponse(true, ChatServiceMessages.REMOVE_ADMIN_SUCCESS, 200);
+            }
+
+            return this._generalUtility.genericResponse(false, ChatServiceMessages.REMOVE_ADMIN_FAILURE, 400);
         }
 
-
-    }*/
+        return this._generalUtility.genericResponse(false, ChatServiceMessages.REMOVE_ADMIN_FAILURE, 400);
+    }
 
     async addUser(chat_id: string, request_user: IChatUser, recipient_user: IChatUser): Promise<IGenericResponse> {
-        const verifyUser: IGenericResponse = await this.userCRUDChecks(chat_id, request_user, recipient_user);
+        const verifyUser: IGenericResponse = await this.userCRUDChecks(chat_id, request_user, recipient_user, true);
         if(!verifyUser["status"]) {
             return verifyUser;
         }
@@ -195,9 +222,116 @@ export class ChatService implements IChatService {
         return this._generalUtility.genericResponse(false, ChatServiceMessages.ADD_USER_FAILURE, 400);
     }
 
-    private async userCRUDChecks(chat_id: string, request_user: IChatUser, recipient_user: IChatUser): Promise<IGenericResponse> {
+    async removeUser(chat_id: string, request_user: IChatUser, recipient_user: IChatUser): Promise<IGenericResponse> {
+        const verifyUser: IGenericResponse = await this.userCRUDChecks(chat_id, request_user, recipient_user, false);
+        if(verifyUser["status"]) {
+            const response: MongoResponse = await this._mongoService.handleConnection
+            (async (): Promise<MongoResponse> => {
+                const query = { chat_id: chat_id };
+                const response: MongoResponse = await this._mongoService.findOne(query, ECollection.chats);
+                const users: IChatUser[] = (response["result"] as IChatDetails)["users"];
+                const usersSet: Set<IChatUser> = new Set(users);
+                usersSet.delete(recipient_user);
+                const admin: IChatUser[] = (response["result"] as IChatDetails)["admin"];
+                const adminSet: Set<IChatUser> = new Set(admin);
+                let update = {}
+                if(admin.includes(recipient_user)) {
+                    adminSet.delete(recipient_user);
+                    update = {
+                        $set: {
+                            users: Array.from(usersSet),
+                            admin: Array.from(adminSet)
+                        }
+                    };
+                } else {
+                    update = {
+                        $set: {
+                            users: Array.from(usersSet)
+                        }
+                    };
+                }
+                return await this._mongoService.updateOne(query, update, ECollection.chats);
+            })
+
+            if(response["status"]) {
+                return this._generalUtility.genericResponse(true, ChatServiceMessages.REMOVE_USER_SUCCESS, 200);
+            }
+
+            return this._generalUtility.genericResponse(false, ChatServiceMessages.REMOVE_USER_FAILURE, 400);
+        }
+
+        return this._generalUtility.genericResponse(false, ChatServiceMessages.REMOVE_USER_FAILURE, 400);
+    }
+
+    async deleteChat(chat_id: string, request_user: IChatUser): Promise<IGenericResponse> {
+        return await this._mongoService.handleConnection
+        (async (): Promise<IGenericResponse> => {
+            const chatQuery = { chat_id: chat_id };
+            let response: MongoResponse = await this._mongoService.findOne(chatQuery, ECollection.chats);
+            const chatDetails: IChatDetails = response["result"] as IChatDetails;
+            if(!response["status"]){
+                return this._generalUtility.genericResponse(false, ChatServiceMessages.NO_CHAT_WITH_ID, 400);
+            }
+
+            const author: IChatUser = chatDetails["author"];
+            if(author !== request_user) {
+                return this._generalUtility.genericResponse(false, ChatServiceMessages.USER_NOT_AUTHOR, 400);
+            }
+
+            const users: IChatUser[] = chatDetails["users"];
+            for(let i = 0; i < users.length; i++) {
+                const user: IChatUser = users[i];
+                const username: string = user["username"];
+                const userQuery = { username: username };
+                const userDetailsResponse: IGenericResponse = await this._accountService.getAccountDetails(username);
+                if(!userDetailsResponse.status) {
+                    console.error(ChatServiceMessages.UNABLE_LOCATE_USER);
+                }
+
+                const userDetails : IUserDetails = userDetailsResponse["result"] as IUserDetails;
+                const chatsSet: Set<string> = new Set(userDetails["chat_list"]);
+                chatsSet.delete(chatDetails["chat_id"]);
+                const update = {
+                    $set: {
+                        chat_list: Array.from(chatsSet)
+                    }
+                };
+
+                try {
+                    await this._mongoService.updateOne(userQuery, update, ECollection.users);
+                } catch (error) {
+                    console.error(ChatServiceMessages.UNABLE_LOCATE_USER);
+                }
+            }
+
+            return this._generalUtility.genericResponse(true, ChatServiceMessages.DELETE_CHAT_SUCCESS, 200);
+        })
+    }
+
+    private async adminCRUDChecks(chat_id: string, request_user: IChatUser, recipient_user: IChatUser, add: boolean): Promise<IGenericResponse> {
         if(request_user === recipient_user) {
-            return this._generalUtility.genericResponse(false, ChatServiceMessages.CANNOT_ADD_YOURSELF, 400);
+            if(add) {
+                return this._generalUtility.genericResponse(false, ChatServiceMessages.CANNOT_ADD_YOURSELF, 400);
+            }
+
+            return this._generalUtility.genericResponse(false, ChatServiceMessages.CANNOT_REMOVE_YOURSELF, 400);
+        }
+
+        let verifyResponse: IGenericResponse = await this.verifyUserAccess(chat_id, request_user, true);
+        if(!verifyResponse["status"]) {
+            return verifyResponse;
+        }
+
+        return await this.verifyUserAccess(chat_id, recipient_user, true);
+    }
+
+    private async userCRUDChecks(chat_id: string, request_user: IChatUser, recipient_user: IChatUser, add: boolean): Promise<IGenericResponse> {
+        if(request_user === recipient_user) {
+            if(add) {
+                return this._generalUtility.genericResponse(false, ChatServiceMessages.CANNOT_ADD_YOURSELF, 400);
+            }
+
+            return this._generalUtility.genericResponse(false, ChatServiceMessages.CANNOT_REMOVE_YOURSELF, 400);
         }
 
         if(await this.verifyUserInChat(chat_id, recipient_user)) {

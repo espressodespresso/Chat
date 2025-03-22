@@ -20,6 +20,7 @@ export interface IUserDetails {
     email: string;
     chat_list: string[];
     friend_list: IChatUser[];
+    blocked_users: IChatUser[];
     last_seen: Date;
     online: boolean;
     options: IUserOptions;
@@ -29,6 +30,7 @@ export interface IAccountService {
     createAccount(username: string, password: string, email: string): Promise<IGenericResponse>;
     getAccountDetails(username: string): Promise<IGenericResponse>;
     updateAccountDetails(data: IUserDetails): Promise<IGenericResponse>;
+    getAccountsDetails(usernames: string[]): Promise<IGenericResponse>;
     updateUserOptions(username: string, data: IUserOptions): Promise<IGenericResponse>
 }
 
@@ -79,6 +81,7 @@ export class AccountService implements IAccountService {
             email: email,
             chat_list: [],
             friend_list: [],
+            blocked_users: [],
             last_seen: new Date(Date.now()),
             online: false,
             options: {
@@ -122,6 +125,27 @@ export class AccountService implements IAccountService {
         }
 
         return this._generalUtility.genericResponse(false, null);
+    }
+
+    async getAccountsDetails(usernames: string[]): Promise<IGenericResponse>  {
+        return await this._mongoService.handleConnection
+        (async (): Promise<IGenericResponse> => {
+            const accountsDetails: IUserDetails[] = [];
+            for(let i = 0; i < usernames.length; i++) {
+                const username = usernames[i];
+                const query = { username: username };
+                const response: MongoResponse = await this._mongoService.findOne(query, ECollection.users);
+                if(response["status"]) {
+                    accountsDetails.push(response["result"]);
+                }
+            }
+
+            if(accountsDetails.length > 0) {
+                return this._generalUtility.genericResponse(false, null);
+            }
+
+            return this._generalUtility.genericResponse(true, accountsDetails);
+        })
     }
 
     async updateAccountDetails(data: IUserDetails): Promise<IGenericResponse> {
