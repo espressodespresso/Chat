@@ -60,14 +60,13 @@ authRoute.post('/refresh', async (c) => {
 
 authRoute.post('/logout', async (c) => {
     const body: ITokenPayload = await c.req.json();
-    const response: ITokenPayload = await tokenService.revokeRefreshToken(body);
+    const response: IAuthResponse = await authService.logout(body);
     await logService.addLog({
         timestamp: new Date(Date.now()),
         event: ELogRequestEvent.POST,
         route: ELogRouteEvent.AUTH,
-        username: response["username"],
+        username: response["message"].split(" ")[0],
         status_code: response["code"]
     });
-    delete response["username"];
     return c.json(response, response["code"]);
 })

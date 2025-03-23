@@ -2,7 +2,7 @@ import {IMongoService, MongoResponse} from "./MongoService";
 import {ServiceFactory} from "./ServiceFactory";
 import {ECollection} from "../enums/Collection.enum";
 import {IGeneralUtility} from "../utility/General.utility";
-import {generalUtility} from "../utility/UtilityModule";
+import {generalUtilityInstance} from "../utility/UtilityModule";
 import {ELogRequestEvent, ELogRouteEvent, ELogServiceEvent} from "../enums/LogEvent.enum";
 import {ContentfulStatusCode} from "hono/dist/types/utils/http-status";
 
@@ -27,7 +27,7 @@ export class LogService implements ILogService {
 
     constructor() {
         this._mongoService = ServiceFactory.createMongoService();
-        this._generalUtility = generalUtility;
+        this._generalUtility = generalUtilityInstance;
     }
 
     async addLog(data: ILogData): Promise<boolean> {

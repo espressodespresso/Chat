@@ -1,9 +1,11 @@
 import {IMongoService, MongoResponse} from "./MongoService";
 import {ServiceFactory} from "./ServiceFactory";
 import {IGeneralUtility, IGenericResponse} from "../utility/General.utility";
-import {generalUtility} from "../utility/UtilityModule";
+import {generalUtilityInstance} from "../utility/UtilityModule";
 import {ECollection} from "../enums/Collection.enum";
 import {IAccountService, IUserDetails} from "./AccountService";
+import {ELogServiceEvent} from "../enums/LogEvent.enum";
+import {ILogService} from "./LogService";
 
 export interface IChatDetails {
     chat_id: string;
@@ -59,16 +61,19 @@ export class ChatService implements IChatService {
     private _mongoService: IMongoService;
     private _generalUtility: IGeneralUtility;
     private _accountService: IAccountService;
+    private _logService: ILogService;
 
     constructor() {
         this._mongoService = ServiceFactory.createMongoService();
-        this._generalUtility = generalUtility;
+        this._generalUtility = generalUtilityInstance;
         this._accountService = ServiceFactory.createAccountService();
+        this._logService = ServiceFactory.createLogService();
     }
 
     async createChat(chat_name: string, creator_user: IChatUser, users: IChatUser[]): Promise<IGenericResponse> {
+        const chat_id: string = this._generalUtility.generateID()
         const defaultData: IChatDetails = {
-            chat_id: this._generalUtility.generateID(),
+            chat_id: chat_id,
             chat_name: chat_name,
             users: users,
             admin: [],
@@ -76,8 +81,8 @@ export class ChatService implements IChatService {
             date_added: new Date(Date.now())
         }
 
-        await this._mongoService.handleConnection
-        (async (): Promise<MongoResponse> => {
+        const response: IGenericResponse = await this._mongoService.handleConnection
+        (async (): Promise<IGenericResponse> => {
             let response: MongoResponse = await this._mongoService.insertOne(defaultData, ECollection.chats);
 
             if(!response["status"]) {
@@ -110,6 +115,17 @@ export class ChatService implements IChatService {
             return this._mongoService.objResponse(true, null);
         })
 
+        if(!response["status"]) {
+            return response;
+        }
+
+        await this._logService.addLog({
+            timestamp: new Date(Date.now()),
+            event: ELogServiceEvent.CHAT_CREATE,
+            username: creator_user["username"],
+            message: chat_id
+        });
+
         return this._generalUtility.genericResponse(true, ChatServiceMessages.CREATION_SUCCESS, 200);
     }
 
@@ -132,6 +148,13 @@ export class ChatService implements IChatService {
         });
 
         if(response["status"]) {
+            await this._logService.addLog({
+                timestamp: new Date(Date.now()),
+                event: ELogServiceEvent.CHAT_CHANGE_NAME,
+                username: user["username"],
+                message: chat_id
+            });
+
             return this._generalUtility.genericResponse(false, ChatServiceMessages.UPDATE_NAME_SUCCESS, 200);
         }
 
@@ -157,6 +180,14 @@ export class ChatService implements IChatService {
                 })
 
                 if(response["status"]) {
+                    await this._logService.addLog({
+                        timestamp: new Date(Date.now()),
+                        event: ELogServiceEvent.CHAT_ADD_ADMIN,
+                        username: request_user["username"],
+                        recipient_username: recipient_user["username"],
+                        message: chat_id
+                    });
+
                     return this._generalUtility.genericResponse(true, ChatServiceMessages.ADD_ADMIN_SUCCESS, 200);
                 }
 
@@ -186,6 +217,14 @@ export class ChatService implements IChatService {
             })
 
             if(response["status"]) {
+                await this._logService.addLog({
+                    timestamp: new Date(Date.now()),
+                    event: ELogServiceEvent.CHAT_REMOVE_ADMIN,
+                    username: request_user["username"],
+                    recipient_username: recipient_user["username"],
+                    message: chat_id
+                });
+
                 return this._generalUtility.genericResponse(true, ChatServiceMessages.REMOVE_ADMIN_SUCCESS, 200);
             }
 
@@ -216,6 +255,14 @@ export class ChatService implements IChatService {
         })
 
         if(response["status"]) {
+            await this._logService.addLog({
+                timestamp: new Date(Date.now()),
+                event: ELogServiceEvent.CHAT_ADD_USER,
+                username: request_user["username"],
+                recipient_username: recipient_user["username"],
+                message: chat_id
+            });
+
             return this._generalUtility.genericResponse(true, ChatServiceMessages.ADD_USER_SUCCESS, 200);
         }
 
@@ -254,6 +301,14 @@ export class ChatService implements IChatService {
             })
 
             if(response["status"]) {
+                await this._logService.addLog({
+                    timestamp: new Date(Date.now()),
+                    event: ELogServiceEvent.CHAT_REMOVE_USER,
+                    username: request_user["username"],
+                    recipient_username: recipient_user["username"],
+                    message: chat_id
+                });
+
                 return this._generalUtility.genericResponse(true, ChatServiceMessages.REMOVE_USER_SUCCESS, 200);
             }
 
@@ -303,6 +358,13 @@ export class ChatService implements IChatService {
                     console.error(ChatServiceMessages.UNABLE_LOCATE_USER);
                 }
             }
+
+            await this._logService.addLog({
+                timestamp: new Date(Date.now()),
+                event: ELogServiceEvent.CHAT_DELETE,
+                username: request_user["username"],
+                message: chat_id
+            });
 
             return this._generalUtility.genericResponse(true, ChatServiceMessages.DELETE_CHAT_SUCCESS, 200);
         })

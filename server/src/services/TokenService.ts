@@ -88,11 +88,6 @@ export class TokenService implements ITokenService{
                 }
 
                 const username: string = this.getUsernameFromRefresh(refresh_token);
-                await this._logService.addLog({
-                    timestamp: new Date(Date.now()),
-                    event: ELogServiceEvent.USER_LOGOUT,
-                    username: username
-                });
                 return {
                     response: this._mongoService.objResponse(true, TokenServiceMessages.SUCCESS_REVOKE_REFRESH_TOKEN),
                     code: 200,

@@ -2,7 +2,7 @@ import {MongoService} from "./MongoService";
 import {AuthService} from "./AuthService";
 import {AccountService} from "./AccountService";
 import {TokenService} from "./TokenService";
-import {SocketService} from "./SocketService";
+import {SocketService} from "./singleton/SocketService";
 import {LogService} from "./LogService";
 import {FriendService} from "./FriendService";
 import {ChatService} from "./ChatService";
@@ -22,10 +22,6 @@ export class ServiceFactory {
 
     static createTokenService(): TokenService {
         return new TokenService();
-    }
-
-    static createSocketService(): SocketService {
-        return new SocketService();
     }
 
     static createLogService(): LogService {

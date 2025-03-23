@@ -5,8 +5,22 @@ export enum ELogServiceEvent {
     REFRESH_TOKEN,
     SOCKET_OPENED,
     SOCKET_MESSAGE,
-    SOCKET_CLOSE
-
+    SOCKET_CLOSE,
+    ACCOUNT_DETAILS,
+    ACCOUNTS_DETAILS,
+    ACCOUNT_UPDATE_DETAILS,
+    ACCOUNT_UPDATE_OPTIONS,
+    CHAT_CREATE,
+    CHAT_CHANGE_NAME,
+    CHAT_ADD_ADMIN,
+    CHAT_REMOVE_ADMIN,
+    CHAT_ADD_USER,
+    CHAT_REMOVE_USER,
+    CHAT_DELETE,
+    FRIEND_ADD_USER,
+    FRIEND_REMOVE_USER,
+    FRIEND_BLOCK_USER,
+    FRIEND_UNBLOCK_USER
 }
 
 export enum ELogRequestEvent {
@@ -19,5 +33,6 @@ export enum ELogRequestEvent {
 export enum ELogRouteEvent {
     ACCOUNT,
     AUTH,
-    SOCKET
+    SOCKET,
+    CHAT
 }

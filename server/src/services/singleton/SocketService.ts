@@ -1,14 +1,15 @@
-import {IMongoService, MongoResponse} from "./MongoService";
-import {ServiceFactory} from "./ServiceFactory";
-import {ECollection} from "../enums/Collection.enum";
+import {IMongoService, MongoResponse} from "../MongoService";
+import {ServiceFactory} from "../ServiceFactory";
+import {ECollection} from "../../enums/Collection.enum";
 import {ServerWebSocket} from "bun";
-import {ELogServiceEvent} from "../enums/LogEvent.enum";
-import {ILogService} from "./LogService";
-import {IUserDetails} from "./AccountService";
+import {ELogServiceEvent} from "../../enums/LogEvent.enum";
+import {ILogService} from "../LogService";
+import {IUserDetails} from "../AccountService";
 
 export interface ISocketService {
     addConnection(client: IUserSocket): Promise<string>;
     removeConnection(client: IUserSocket): Promise<string>;
+    getConnection(username: string): Promise<IUserSocket | null>;
     sendToAllActive(message: ISocketMessage): void;
     sendToAll(message: ISocketMessage): Promise<boolean>
     sendToUsername(message: ISocketMessage): Promise<boolean>;
@@ -27,16 +28,25 @@ export interface ISocketMessage {
 }
 
 export class SocketService implements ISocketService {
+    private static _instance: SocketService | null = null;
     private _activeConnections: Map<string, ServerWebSocket>;
     private _mongoService: IMongoService;
     private _textEncoder: TextEncoder;
     private _logService: ILogService;
 
-    constructor() {
+    private constructor() {
         this._activeConnections = new Map<string, ServerWebSocket>();
         this._mongoService = ServiceFactory.createMongoService();
         this._textEncoder = new TextEncoder();
         this._logService = ServiceFactory.createLogService();
+    }
+
+    static getInstance(): SocketService {
+        if(this._instance === null) {
+            this._instance = new SocketService();
+        }
+
+        return this._instance;
     }
 
     async addConnection(client: IUserSocket): Promise<string> {
@@ -57,6 +67,18 @@ export class SocketService implements ISocketService {
             username: client["username"]
         });
         return `${client["username"]} disconnected...`;
+    }
+
+    async getConnection(username: string): Promise<IUserSocket | null> {
+        const connection: ServerWebSocket | undefined = this._activeConnections.get(username);
+        if (!connection) {
+            return null;
+        }
+
+        return {
+            username: username,
+            socket: connection
+        }
     }
 
     private queryActiveConnection(username: string): boolean {

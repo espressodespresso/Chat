@@ -1,7 +1,7 @@
 import {IMongoService, MongoResponse} from "./MongoService";
 import {ServiceFactory} from "./ServiceFactory";
 import {IGeneralUtility, IGenericResponse} from "../utility/General.utility";
-import {generalUtility} from "../utility/UtilityModule";
+import {generalUtilityInstance} from "../utility/UtilityModule";
 import {ECollection} from "../enums/Collection.enum";
 import {ILogService} from "./LogService";
 import {ELogServiceEvent} from "../enums/LogEvent.enum";
@@ -64,7 +64,7 @@ export class AccountService implements IAccountService {
 
     constructor() {
         this._mongoService = ServiceFactory.createMongoService();
-        this._generalUtility = generalUtility;
+        this._generalUtility = generalUtilityInstance;
         this._logService = ServiceFactory.createLogService();
     }
 
@@ -121,6 +121,12 @@ export class AccountService implements IAccountService {
         })
 
         if(response["status"]) {
+            await this._logService.addLog({
+                timestamp: new Date(Date.now()),
+                event: ELogServiceEvent.ACCOUNT_DETAILS,
+                username: username
+            });
+
             return this._generalUtility.genericResponse(true, response["result"]);
         }
 
@@ -131,8 +137,10 @@ export class AccountService implements IAccountService {
         return await this._mongoService.handleConnection
         (async (): Promise<IGenericResponse> => {
             const accountsDetails: IUserDetails[] = [];
+            let accountsString: string = "";
             for(let i = 0; i < usernames.length; i++) {
                 const username = usernames[i];
+                accountsString += ` ${username}`;
                 const query = { username: username };
                 const response: MongoResponse = await this._mongoService.findOne(query, ECollection.users);
                 if(response["status"]) {
@@ -143,6 +151,12 @@ export class AccountService implements IAccountService {
             if(accountsDetails.length > 0) {
                 return this._generalUtility.genericResponse(false, null);
             }
+
+            await this._logService.addLog({
+                timestamp: new Date(Date.now()),
+                event: ELogServiceEvent.ACCOUNTS_DETAILS,
+                username: accountsString
+            });
 
             return this._generalUtility.genericResponse(true, accountsDetails);
         })
@@ -167,6 +181,12 @@ export class AccountService implements IAccountService {
         })
 
         if(response["status"]) {
+            await this._logService.addLog({
+                timestamp: new Date(Date.now()),
+                event: ELogServiceEvent.ACCOUNT_UPDATE_DETAILS,
+                username: username
+            });
+
             return this._generalUtility.genericResponse(true, AccountServiceMessages.SIGNUP_SUCCESS, 200);
         }
 
@@ -193,6 +213,12 @@ export class AccountService implements IAccountService {
         });
 
         if(response["status"]) {
+            await this._logService.addLog({
+                timestamp: new Date(Date.now()),
+                event: ELogServiceEvent.ACCOUNT_UPDATE_OPTIONS,
+                username: username
+            });
+
             return this._generalUtility.genericResponse(true, AccountServiceMessages.UPDATE_OPTIONS_SUCCESS, 200);
         }
 

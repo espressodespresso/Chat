@@ -1,10 +1,12 @@
 import {ServiceFactory} from "./ServiceFactory";
 import {IGeneralUtility, IGenericResponse} from "../utility/General.utility";
-import {generalUtility} from "../utility/UtilityModule";
+import {generalUtilityInstance} from "../utility/UtilityModule";
 import {IAccountService, IUserDetails} from "./AccountService";
 import {IMongoService, MongoResponse} from "./MongoService";
 import {IChatUser} from "./ChatService";
 import {ECollection} from "../enums/Collection.enum";
+import {ELogServiceEvent} from "../enums/LogEvent.enum";
+import {ILogService} from "./LogService";
 
 export interface IFriendService {
     addFriend(request_user: IChatUser, recipient_user: IChatUser): Promise<IGenericResponse>;
@@ -44,11 +46,13 @@ export class FriendService implements IFriendService {
     private _mongoService: IMongoService;
     private _accountService: IAccountService;
     private _generalUtility: IGeneralUtility;
+    private _logService: ILogService;
 
     constructor() {
         this._mongoService = ServiceFactory.createMongoService();
         this._accountService = ServiceFactory.createAccountService();
-        this._generalUtility = generalUtility;
+        this._generalUtility = generalUtilityInstance;
+        this._logService = ServiceFactory.createLogService();
     }
 
     private async serviceCRUDChecks(request_user: IChatUser, recipient_user: IChatUser, msg: string, friend_list: boolean): Promise<IGenericResponse> {
@@ -137,6 +141,41 @@ export class FriendService implements IFriendService {
                 }
 
                 return this._generalUtility.genericResponse(false, FriendServiceMessages.UNABLE_UPDATE_BLOCKED_RECIPIENT, 400);
+            }
+
+            switch (msg) {
+                case FriendServiceMessages.ADD_FRIEND_SUCCESS:
+                    await this._logService.addLog({
+                        timestamp: new Date(Date.now()),
+                        event: ELogServiceEvent.FRIEND_ADD_USER,
+                        username: requestUsername,
+                        recipient_username: recipientUsername
+                    });
+                    break;
+                case FriendServiceMessages.REMOVE_FRIEND_SUCCESS:
+                    await this._logService.addLog({
+                        timestamp: new Date(Date.now()),
+                        event: ELogServiceEvent.FRIEND_REMOVE_USER,
+                        username: requestUsername,
+                        recipient_username: recipientUsername
+                    });
+                    break;
+                case FriendServiceMessages.BLOCK_USER_SUCCESS:
+                    await this._logService.addLog({
+                        timestamp: new Date(Date.now()),
+                        event: ELogServiceEvent.FRIEND_BLOCK_USER,
+                        username: requestUsername,
+                        recipient_username: recipientUsername
+                    });
+                    break;
+                case FriendServiceMessages.UNBLOCK_USER_SUCCESS:
+                    await this._logService.addLog({
+                        timestamp: new Date(Date.now()),
+                        event: ELogServiceEvent.FRIEND_UNBLOCK_USER,
+                        username: requestUsername,
+                        recipient_username: recipientUsername
+                    });
+                    break;
             }
 
             return this._generalUtility.genericResponse(true, msg, 200);

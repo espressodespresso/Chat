@@ -1,10 +1,9 @@
 import {Hono} from "hono";
-import {decode} from "hono/jwt"
 import {JWTPayload} from "hono/dist/types/utils/jwt/types";
+import {decode} from "hono/dist/types/middleware/jwt";
 
-export const accountRoute = new Hono();
+export const chatRoute = new Hono();
 
-accountRoute.get('/details', async (c) => {
+chatRoute.post('/create', async (c) => {
     const payload: JWTPayload = c.get("jwtPayload");
-
 })
