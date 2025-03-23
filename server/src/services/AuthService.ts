@@ -1,28 +1,15 @@
-import {IMongoService, MongoResponse} from "./MongoService";
 import {ServiceFactory} from "./ServiceFactory";
-import {ECollection} from "../enums/Collection.enum";
 import {compare, hash} from "bcrypt-ts"
 import {ContentfulStatusCode} from "hono/dist/types/utils/http-status";
-import {ITokenPayload, ITokenService} from "./TokenService";
-import {ILogService} from "./LogService";
 import {ELogServiceEvent} from "../enums/LogEvent.enum";
-import {IAccountService, IUserDetails} from "./AccountService";
-import {IGenericResponse} from "../utility/General.utility";
-import {ISocketService, IUserSocket} from "./singleton/SocketService";
 import {socketServiceInstance} from "./singleton/SocketModule";
-
-export interface IAuthService {
-    login(username: string, password: string): Promise<IAuthResponse>;
-    signup(username: string, password: string, email: string): Promise<IAuthResponse>;
-    logout(data: ITokenPayload): Promise<IAuthResponse>;
-}
-
-export interface IAuthResponse {
-    status: boolean;
-    message: string;
-    code: ContentfulStatusCode;
-    token?: ITokenPayload;
-}
+import {IAuthResponse, IAuthService} from "../interfaces/AuthService.interface";
+import {IMongoService} from "../interfaces/MongoService.interface";
+import {ITokenPayload, ITokenService} from "../interfaces/TokenService.interface";
+import {ILogService} from "../interfaces/LogService.interface";
+import {IAccountService, IUserDetails} from "../interfaces/AccountService.interface";
+import {ISocketService, IUserSocket} from "../interfaces/SocketService.interface";
+import {IGenericResponse} from "../interfaces/utility/General.interface";
 
 const AuthServiceMessages = {
     SIGNUP_EXISTS: "User already exists.",

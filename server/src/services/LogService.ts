@@ -1,25 +1,9 @@
-import {IMongoService, MongoResponse} from "./MongoService";
 import {ServiceFactory} from "./ServiceFactory";
 import {ECollection} from "../enums/Collection.enum";
-import {IGeneralUtility} from "../utility/General.utility";
 import {generalUtilityInstance} from "../utility/UtilityModule";
-import {ELogRequestEvent, ELogRouteEvent, ELogServiceEvent} from "../enums/LogEvent.enum";
-import {ContentfulStatusCode} from "hono/dist/types/utils/http-status";
-
-export interface ILogService {
-    addLog(data: ILogData): Promise<boolean>;
-}
-
-export interface ILogData {
-    log_id?: string,
-    timestamp: Date,
-    event: ELogServiceEvent | ELogRequestEvent,
-    route?: ELogRouteEvent,
-    username?: string,
-    message?: string,
-    recipient_username?: string,
-    status_code?: ContentfulStatusCode
-}
+import {ILogData, ILogService} from "../interfaces/LogService.interface";
+import {IMongoService, MongoResponse} from "../interfaces/MongoService.interface";
+import {IGeneralUtility} from "../interfaces/utility/General.interface";
 
 export class LogService implements ILogService {
     private _mongoService: IMongoService;

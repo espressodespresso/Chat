@@ -1,15 +1,14 @@
 import {Hono} from "hono";
-import {ISocketMessage, ISocketService, IUserSocket} from "../services/singleton/SocketService";
 import {ServiceFactory} from "../services/ServiceFactory";
 import {createBunWebSocket} from "hono/bun";
 import type {ServerWebSocket} from "bun";
 import {JWTPayload} from "hono/dist/types/utils/jwt/types";
-import {decode, verify} from "hono/jwt";
-import {WSMessageReceive} from "hono/dist/types/helper/websocket";
-import {ITokenService} from "../services/TokenService";
+import {decode} from "hono/jwt";
 import {ELogRequestEvent, ELogRouteEvent} from "../enums/LogEvent.enum";
-import {ILogService} from "../services/LogService";
 import {socketServiceInstance} from "../services/singleton/SocketModule";
+import {ISocketMessage, ISocketService, IUserSocket} from "../interfaces/SocketService.interface";
+import {ITokenService} from "../interfaces/TokenService.interface";
+import {ILogService} from "../interfaces/LogService.interface";
 
 export const socketRoute = new Hono();
 
@@ -17,6 +16,13 @@ const { upgradeWebSocket, websocket } = createBunWebSocket<ServerWebSocket>()
 const socketService: ISocketService = socketServiceInstance;
 const tokenService: ITokenService = ServiceFactory.createTokenService();
 const logService: ILogService = ServiceFactory.createLogService();
+
+const SocketRouteMessages = {
+    NO_TOKEN_QUERY: "Token not provided as a query.",
+    INVALID_TOKEN: "Could not verify token successfully.",
+    NO_USERNAME_QUERY: "Unable to properly close user as username not provided as a query.",
+    NO_ACTIVE_CONNECTION: "Unable to properly close user as unable to locate active connection."
+}
 
 socketRoute.get('/', upgradeWebSocket(async (c) => {
     let payload: JWTPayload;
@@ -27,7 +33,7 @@ socketRoute.get('/', upgradeWebSocket(async (c) => {
                 const queriedToken: string | undefined = c.req.query('token');
                 let token: string;
                 if(!queriedToken) {
-                    socket.close(1011, "Token not provided as a query");
+                    socket.close(1011, SocketRouteMessages.NO_TOKEN_QUERY);
                 }
                 token = queriedToken as string;
                 if(await tokenService.verifyAccessToken(token)) {
@@ -46,7 +52,7 @@ socketRoute.get('/', upgradeWebSocket(async (c) => {
                         username: username
                     });
                 } else {
-                    socket.close(1011, "Could not verify token successfully.")
+                    socket.close(1011, SocketRouteMessages.INVALID_TOKEN)
                 }
             } catch (error) {
                 console.error(error);
@@ -77,13 +83,13 @@ socketRoute.get('/', upgradeWebSocket(async (c) => {
                 const socket: ServerWebSocket = ws.raw as ServerWebSocket;
                 const queriedUsername: string | undefined = c.req.query('username');
                 if (!queriedUsername) {
-                    console.error("Unable to properly close user as username not provided as a query");
+                    console.error(SocketRouteMessages.NO_USERNAME_QUERY);
                 }
 
                 const username: string = queriedUsername as string;
                 const connection: IUserSocket | null = await socketService.getConnection(username);
                 if(connection === null) {
-                    console.error("Unable to properly close user as unable to locate active connection")
+                    console.error(SocketRouteMessages.NO_ACTIVE_CONNECTION);
                 }
 
                 await socketService.removeConnection(connection as IUserSocket);

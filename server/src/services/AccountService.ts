@@ -1,38 +1,12 @@
-import {IMongoService, MongoResponse} from "./MongoService";
 import {ServiceFactory} from "./ServiceFactory";
-import {IGeneralUtility, IGenericResponse} from "../utility/General.utility";
 import {generalUtilityInstance} from "../utility/UtilityModule";
 import {ECollection} from "../enums/Collection.enum";
-import {ILogService} from "./LogService";
 import {ELogServiceEvent} from "../enums/LogEvent.enum";
 import {hash} from "bcrypt-ts";
-import {IChatDetails, IChatUser} from "./ChatService";
-
-export interface IUserOptions {
-    theme: boolean;
-    display_name: string;
-}
-
-export interface IUserDetails {
-    user_id: string;
-    username: string;
-    password: string;
-    email: string;
-    chat_list: string[];
-    friend_list: IChatUser[];
-    blocked_users: IChatUser[];
-    last_seen: Date;
-    online: boolean;
-    options: IUserOptions;
-}
-
-export interface IAccountService {
-    createAccount(username: string, password: string, email: string): Promise<IGenericResponse>;
-    getAccountDetails(username: string): Promise<IGenericResponse>;
-    updateAccountDetails(data: IUserDetails): Promise<IGenericResponse>;
-    getAccountsDetails(usernames: string[]): Promise<IGenericResponse>;
-    updateUserOptions(username: string, data: IUserOptions): Promise<IGenericResponse>
-}
+import {IMongoService, MongoResponse} from "../interfaces/MongoService.interface";
+import {ILogService} from "../interfaces/LogService.interface";
+import {IAccountService, IUserDetails, IUserOptions} from "../interfaces/AccountService.interface";
+import {IGeneralUtility, IGenericResponse} from "../interfaces/utility/General.interface";
 
 const AccountServiceMessages = {
     ACCOUNT_EXISTS: "Account with credentials already exists.",

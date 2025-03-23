@@ -1,10 +1,10 @@
 import {Hono} from "hono";
-import {IAuthResponse, IAuthService} from "../services/AuthService";
 import {ServiceFactory} from "../services/ServiceFactory";
-import {ITokenPayload, ITokenService} from "../services/TokenService";
 import {ELogRequestEvent, ELogRouteEvent} from "../enums/LogEvent.enum";
-import {ILogService} from "../services/LogService";
-import {IUserDetails} from "../services/AccountService";
+import {IAuthResponse, IAuthService} from "../interfaces/AuthService.interface";
+import {ITokenPayload, ITokenService} from "../interfaces/TokenService.interface";
+import {ILogService} from "../interfaces/LogService.interface";
+import {IUserDetails} from "../interfaces/AccountService.interface";
 
 export const authRoute = new Hono();
 const authService: IAuthService = ServiceFactory.createAuthService();

@@ -1,26 +1,13 @@
 import {ServiceFactory} from "./ServiceFactory";
-import {IGeneralUtility, IGenericResponse} from "../utility/General.utility";
 import {generalUtilityInstance} from "../utility/UtilityModule";
-import {IAccountService, IUserDetails} from "./AccountService";
-import {IMongoService, MongoResponse} from "./MongoService";
-import {IChatUser} from "./ChatService";
 import {ECollection} from "../enums/Collection.enum";
 import {ELogServiceEvent} from "../enums/LogEvent.enum";
-import {ILogService} from "./LogService";
-
-export interface IFriendService {
-    addFriend(request_user: IChatUser, recipient_user: IChatUser): Promise<IGenericResponse>;
-    removeFriend(request_user: IChatUser, recipient_user: IChatUser): Promise<IGenericResponse>;
-    blockFriend(request_user: IChatUser, recipient_user: IChatUser): Promise<IGenericResponse>;
-    unblockFriend(request_user: IChatUser, recipient_user: IChatUser): Promise<IGenericResponse>;
-}
-
-interface ServiceCRUDResponse {
-    requestFriendList?: IChatUser[];
-    recipientFriendList?: IChatUser[];
-    requestBlockedUsers?: IChatUser[];
-    recipientBlockedUsers?: IChatUser[];
-}
+import {IFriendService, ServiceCRUDResponse} from "../interfaces/FriendService.interface";
+import {IMongoService, MongoResponse} from "../interfaces/MongoService.interface";
+import {IAccountService, IUserDetails} from "../interfaces/AccountService.interface";
+import {ILogService} from "../interfaces/LogService.interface";
+import {IChatUser} from "../interfaces/ChatService.interface";
+import {IGeneralUtility, IGenericResponse} from "../interfaces/utility/General.interface";
 
 const FriendServiceMessages = {
     CANNOT_ADD_YOURSELF: "You cannot add yourself as a friend.",
