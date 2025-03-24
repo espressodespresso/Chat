@@ -27,12 +27,14 @@ export enum ELogRequestEvent {
     POST,
     GET,
     PUT,
-    DELETE
+    DELETE,
+    PATCH
 }
 
 export enum ELogRouteEvent {
     ACCOUNT,
     AUTH,
     SOCKET,
-    CHAT
+    CHAT,
+    FRIEND
 }

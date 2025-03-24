@@ -24,7 +24,6 @@ const ChatServiceMessages = {
     CANNOT_ADD_YOURSELF: "Unable to add yourself to the chat.",
     ADD_ADMIN_SUCCESS: "Successfully added admin to the chat.",
     ADD_ADMIN_FAILURE: "Unable to add user within that chat.",
-    CANNOT_REMOVE_YOURSELF: "Unable to remove yourself from the chat",
     REMOVE_ADMIN_SUCCESS: "Successfully removed admin from the chat.",
     REMOVE_ADMIN_FAILURE: "Unable to remove admin from the chat.",
     REMOVE_USER_SUCCESS: "Successfully removed user from the chat.",
@@ -348,12 +347,8 @@ export class ChatService implements IChatService {
     }
 
     private async adminCRUDChecks(chat_id: string, request_user: IChatUser, recipient_user: IChatUser, add: boolean): Promise<IGenericResponse> {
-        if(request_user === recipient_user) {
-            if(add) {
-                return this._generalUtility.genericResponse(false, ChatServiceMessages.CANNOT_ADD_YOURSELF, 400);
-            }
-
-            return this._generalUtility.genericResponse(false, ChatServiceMessages.CANNOT_REMOVE_YOURSELF, 400);
+        if(request_user === recipient_user && add) {
+            return this._generalUtility.genericResponse(false, ChatServiceMessages.CANNOT_ADD_YOURSELF, 400);
         }
 
         let verifyResponse: IGenericResponse = await this.verifyUserAccess(chat_id, request_user, true);
@@ -365,12 +360,8 @@ export class ChatService implements IChatService {
     }
 
     private async userCRUDChecks(chat_id: string, request_user: IChatUser, recipient_user: IChatUser, add: boolean): Promise<IGenericResponse> {
-        if(request_user === recipient_user) {
-            if(add) {
-                return this._generalUtility.genericResponse(false, ChatServiceMessages.CANNOT_ADD_YOURSELF, 400);
-            }
-
-            return this._generalUtility.genericResponse(false, ChatServiceMessages.CANNOT_REMOVE_YOURSELF, 400);
+        if(request_user === recipient_user && add) {
+            return this._generalUtility.genericResponse(false, ChatServiceMessages.CANNOT_ADD_YOURSELF, 400);
         }
 
         if(await this.verifyUserInChat(chat_id, recipient_user)) {

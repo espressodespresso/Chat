@@ -1,8 +1,11 @@
 import {ContentfulStatusCode} from "hono/dist/types/utils/http-status";
+import {IChatUser} from "../ChatService.interface";
 
 export interface IGeneralUtility {
     generateID(): string;
     genericResponse(status: boolean, result: any, code?: ContentfulStatusCode): IGenericResponse;
+    verifyUserAccess(request_username: IChatUser, recipient_username: IChatUser): boolean;
+    noUserAccessString(): string;
 }
 
 export interface IGenericResponse {

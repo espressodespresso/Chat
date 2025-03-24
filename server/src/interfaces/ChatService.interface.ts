@@ -1,4 +1,4 @@
-import {IGenericResponse} from "../utility/General.utility";
+import {IGenericResponse} from "./utility/General.interface";
 
 export interface IChatDetails {
     chat_id: string;

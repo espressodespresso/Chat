@@ -1,5 +1,5 @@
-import {IChatUser} from "../services/ChatService";
-import {IGenericResponse} from "../utility/General.utility";
+import {IChatUser} from "./ChatService.interface";
+import {IGenericResponse} from "./utility/General.interface";
 
 export interface IAccountService {
     createAccount(username: string, password: string, email: string): Promise<IGenericResponse>;

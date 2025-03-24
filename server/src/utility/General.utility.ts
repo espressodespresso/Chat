@@ -1,5 +1,6 @@
 import {ContentfulStatusCode} from "hono/dist/types/utils/http-status";
 import {IGeneralUtility, IGenericResponse} from "../interfaces/utility/General.interface";
+import {IChatUser} from "../interfaces/ChatService.interface";
 
 export class GeneralUtility implements IGeneralUtility {
     private static _instance: GeneralUtility | null = null;
@@ -37,5 +38,13 @@ export class GeneralUtility implements IGeneralUtility {
             status: status,
             result: result
         }
+    }
+
+    verifyUserAccess(request_username: IChatUser, recipient_username: IChatUser): boolean {
+        return request_username !== recipient_username;
+    }
+
+    noUserAccessString(): string {
+        return "You cannot access this route due to not have the correct privileges.";
     }
 }

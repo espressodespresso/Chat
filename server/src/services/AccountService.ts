@@ -16,6 +16,7 @@ const AccountServiceMessages = {
     UPDATE_DETAILS_SUCCESS: "Account details updated successfully.",
     UPDATE_OPTIONS_FAILURE: "Unable to update account options.",
     UPDATE_OPTIONS_SUCCESS: "Account options updated successfully.",
+    GET_DETAILS_FAILURE: "Unable to gather account details successfully."
 }
 
 const ValidationMessages = {
@@ -101,10 +102,10 @@ export class AccountService implements IAccountService {
                 username: username
             });
 
-            return this._generalUtility.genericResponse(true, response["result"]);
+            return this._generalUtility.genericResponse(true, response["result"], 200);
         }
 
-        return this._generalUtility.genericResponse(false, null);
+        return this._generalUtility.genericResponse(false, AccountServiceMessages.GET_DETAILS_FAILURE, 400);
     }
 
     async getAccountsDetails(usernames: string[]): Promise<IGenericResponse>  {

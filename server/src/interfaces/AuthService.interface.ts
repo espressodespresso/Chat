@@ -1,5 +1,5 @@
-import {ITokenPayload} from "../services/TokenService";
 import {ContentfulStatusCode} from "hono/dist/types/utils/http-status";
+import {ITokenPayload} from "./TokenService.interface";
 
 export interface IAuthService {
     login(username: string, password: string): Promise<IAuthResponse>;
