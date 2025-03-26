@@ -83,8 +83,8 @@ export class ChatService implements IChatService {
             }
 
             for(let i = 0; i < users.length; i++) {
-                const username: string = users[i]["username"];
-                const query = { username: username };
+                const user_id: string = users[i]["user_id"];
+                const query = { user_id: user_id };
                 response = await this._mongoService.findOne(query, ECollection.users);
                 if(!response["status"]) {
                     return this._generalUtility.genericResponse(false, ChatServiceMessages.CREATION_ADDUSER_FAILURE, 400);
@@ -115,7 +115,7 @@ export class ChatService implements IChatService {
         await this._logService.addLog({
             timestamp: new Date(Date.now()),
             event: ELogServiceEvent.CHAT_CREATE,
-            username: creator_user["username"],
+            user_id: creator_user["user_id"],
             message: chat_id
         });
 
@@ -144,7 +144,7 @@ export class ChatService implements IChatService {
             await this._logService.addLog({
                 timestamp: new Date(Date.now()),
                 event: ELogServiceEvent.CHAT_CHANGE_NAME,
-                username: user["username"],
+                user_id: user["user_id"],
                 message: chat_id
             });
 
@@ -176,8 +176,8 @@ export class ChatService implements IChatService {
                     await this._logService.addLog({
                         timestamp: new Date(Date.now()),
                         event: ELogServiceEvent.CHAT_ADD_ADMIN,
-                        username: request_user["username"],
-                        recipient_username: recipient_user["username"],
+                        user_id: request_user["user_id"],
+                        recipient_id: recipient_user["user_id"],
                         message: chat_id
                     });
 
@@ -213,8 +213,8 @@ export class ChatService implements IChatService {
                 await this._logService.addLog({
                     timestamp: new Date(Date.now()),
                     event: ELogServiceEvent.CHAT_REMOVE_ADMIN,
-                    username: request_user["username"],
-                    recipient_username: recipient_user["username"],
+                    user_id: request_user["user_id"],
+                    recipient_id: recipient_user["user_id"],
                     message: chat_id
                 });
 
@@ -249,7 +249,7 @@ export class ChatService implements IChatService {
                 return response;
             }
 
-            const userQuery = { username: recipient_user["username"] };
+            const userQuery = { user_id: recipient_user["user_id"] };
             response = await this._mongoService.findOne(userQuery, ECollection.users);
             if(!response["status"]) {
                 return response;
@@ -269,8 +269,8 @@ export class ChatService implements IChatService {
             await this._logService.addLog({
                 timestamp: new Date(Date.now()),
                 event: ELogServiceEvent.CHAT_ADD_USER,
-                username: request_user["username"],
-                recipient_username: recipient_user["username"],
+                user_id: request_user["user_id"],
+                recipient_id: recipient_user["user_id"],
                 message: chat_id
             });
 
@@ -282,11 +282,9 @@ export class ChatService implements IChatService {
 
     async removeUser(chat_id: string, request_user: IChatUser, recipient_user: IChatUser): Promise<IGenericResponse> {
         const verifyUser: IGenericResponse = await this.userCRUDChecks(chat_id, request_user, recipient_user, false);
-        console.log("1");
         if(verifyUser["status"]) {
             const response: MongoResponse = await this._mongoService.handleConnection
             (async (): Promise<MongoResponse> => {
-                console.log("1");
                 const chatQuery = { chat_id: chat_id };
                 let response: MongoResponse = await this._mongoService.findOne(chatQuery, ECollection.chats);
                 if((response["result"] as IChatDetails)["author"] === recipient_user) {
@@ -316,7 +314,7 @@ export class ChatService implements IChatService {
                     return response;
                 }
 
-                const userQuery = { username: recipient_user["username"] };
+                const userQuery = { user_id: recipient_user["user_id"] };
                 response = await this._mongoService.findOne(userQuery, ECollection.users);
                 if(!response["status"]) {
                     return response;
@@ -339,8 +337,8 @@ export class ChatService implements IChatService {
                 await this._logService.addLog({
                     timestamp: new Date(Date.now()),
                     event: ELogServiceEvent.CHAT_REMOVE_USER,
-                    username: request_user["username"],
-                    recipient_username: recipient_user["username"],
+                    user_id: request_user["user_id"],
+                    recipient_id: recipient_user["user_id"],
                     message: chat_id
                 });
 
@@ -371,9 +369,9 @@ export class ChatService implements IChatService {
             const users: IChatUser[] = chatDetails["users"];
             for(let i = 0; i < users.length; i++) {
                 const user: IChatUser = users[i];
-                const username: string = user["username"];
-                const userQuery = { username: username };
-                const userDetailsResponse: IGenericResponse = await this._accountService.getAccountDetails(username);
+                const user_id: string = user["user_id"];
+                const userQuery = { user_id: user_id };
+                const userDetailsResponse: IGenericResponse = await this._accountService.getAccountDetailsByID(user_id);
                 if(!userDetailsResponse.status) {
                     console.error(ChatServiceMessages.UNABLE_LOCATE_USER);
                 }
@@ -400,7 +398,7 @@ export class ChatService implements IChatService {
             await this._logService.addLog({
                 timestamp: new Date(Date.now()),
                 event: ELogServiceEvent.CHAT_DELETE,
-                username: request_user["username"],
+                user_id: request_user["user_id"],
                 message: chat_id
             });
 
@@ -444,7 +442,6 @@ export class ChatService implements IChatService {
 
         const verifyResponse: IGenericResponse = await this.verifyUserAccess(chat_id, request_user);
         if(!verifyResponse["status"]) {
-            console.log("d")
             return verifyResponse;
         }
 

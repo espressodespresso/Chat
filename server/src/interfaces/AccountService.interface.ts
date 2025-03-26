@@ -3,10 +3,13 @@ import {IGenericResponse} from "./utility/General.interface";
 
 export interface IAccountService {
     createAccount(username: string, password: string, email: string): Promise<IGenericResponse>;
-    getAccountDetails(username: string): Promise<IGenericResponse>;
+    getUserIDByUsername(username: string): Promise<IGenericResponse>
+    getUsernameByUserID(user_id: string): Promise<IGenericResponse>;
+    getAccountDetailsByID(user_id: string): Promise<IGenericResponse>;
+    getAccountDetailsByUsername(username: string): Promise<IGenericResponse>;
     updateAccountDetails(data: IUserDetails): Promise<IGenericResponse>;
-    getAccountsDetails(usernames: string[]): Promise<IGenericResponse>;
-    updateUserOptions(username: string, data: IUserOptions): Promise<IGenericResponse>
+    getAccountsDetails(user_ids: string[]): Promise<IGenericResponse>;
+    updateUserOptions(user_id: string, data: IUserOptions): Promise<IGenericResponse>
 }
 
 export interface IUserOptions {

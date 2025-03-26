@@ -35,70 +35,72 @@ export class SocketService implements ISocketService {
     }
 
     async addConnection(client: IUserSocket): Promise<string> {
-        this._activeConnections.set(client["username"], client["socket"]);
+        const user_id: string = client["user_id"];
+        this._activeConnections.set(user_id, client["socket"]);
         await this._logService.addLog({
             timestamp: new Date(Date.now()),
             event: ELogServiceEvent.SOCKET_OPENED,
-            username: client["username"]
+            user_id: user_id
         });
-        return `${client["username"]} connected...`
+        return `${user_id} connected...`
     }
 
     async removeConnection(client: IUserSocket): Promise<string> {
-        this._activeConnections.delete(client["username"]);
+        const user_id: string = client["user_id"];
+        this._activeConnections.delete(user_id);
         await this._logService.addLog({
             timestamp: new Date(Date.now()),
             event: ELogServiceEvent.SOCKET_CLOSE,
-            username: client["username"]
+            user_id: user_id
         });
-        return `${client["username"]} disconnected...`;
+        return `${user_id} disconnected...`;
     }
 
-    async getConnection(username: string): Promise<IUserSocket | null> {
-        const connection: ServerWebSocket | undefined = this._activeConnections.get(username);
+    async getConnection(user_id: string): Promise<IUserSocket | null> {
+        const connection: ServerWebSocket | undefined = this._activeConnections.get(user_id);
         if (!connection) {
             return null;
         }
 
         return {
-            username: username,
+            user_id: user_id,
             socket: connection
         }
     }
 
-    private queryActiveConnection(username: string): boolean {
-        return this._activeConnections.has(username);
+    private queryActiveConnection(user_id: string): boolean {
+        return this._activeConnections.has(user_id);
     }
 
     async sendToAllActive(message: ISocketMessage): Promise<boolean> {
         const sockets: ServerWebSocket[] = this._activeConnections.values().toArray();
-        const usernames: string[] = this._activeConnections.keys().toArray();
+        const userIDs: string[] = this._activeConnections.keys().toArray();
         let messageData: ISocketMessage[] = [];
 
         for(let i = 0; i < this._activeConnections.size; i++) {
             const socket: ServerWebSocket = sockets[i];
-            const username: string = usernames[i];
+            const user_id: string = userIDs[i];
             if(socket.readyState === 1) {
                 const data: ISocketMessage = {
-                    recipientUsername: username,
-                    senderUsername: "Server",
+                    recipient_id: user_id,
+                    sender_id: "Server",
                     message: message["message"],
                     timestamp: new Date(Date.now()),
                 };
 
-                await this._logService.addLog({
-                    timestamp: new Date(Date.now()),
-                    event: ELogServiceEvent.SOCKET_MESSAGE,
-                    username: "Server",
-                    recipient_username: "All"
-                });
-
                 socket.sendBinary(this._textEncoder.encode(JSON.stringify(data)));
                 messageData.push(data);
             } else {
-                console.log(`Skipped broadcasting to ${username}'s socket as busy.`)
+                console.log(`Skipped broadcasting to ${user_id}'s socket as busy.`)
             }
         }
+
+        await this._logService.addLog({
+            timestamp: new Date(Date.now()),
+            event: ELogServiceEvent.SOCKET_MESSAGE,
+            user_id: "Server",
+            recipient_id: "All"
+        });
 
         const response: MongoResponse = await this._mongoService.handleConnection
         (async (): Promise<MongoResponse> => {
@@ -120,23 +122,16 @@ export class SocketService implements ISocketService {
 
                 for (let i = 0; i < usersDatabase.length; i++) {
                     const user: IUserDetails = usersDatabase[i];
-                    if(activeUsers.includes(user["username"])) {
+                    if(activeUsers.includes(user["user_id"])) {
                         continue;
                     }
 
                     const data: ISocketMessage = {
-                        recipientUsername: user["username"],
-                        senderUsername: "Server",
+                        recipient_id: user["user_id"],
+                        sender_id: "Server",
                         message: message["message"],
                         timestamp: new Date(Date.now()),
                     }
-
-                    await this._logService.addLog({
-                        timestamp: new Date(Date.now()),
-                        event: ELogServiceEvent.SOCKET_MESSAGE,
-                        username: "Server",
-                        recipient_username: "All"
-                    });
 
                     messageData.push(data);
                 }
@@ -147,30 +142,37 @@ export class SocketService implements ISocketService {
             return this._mongoService.objResponse(false, "Unable to find all users.");
         })
 
+        await this._logService.addLog({
+            timestamp: new Date(Date.now()),
+            event: ELogServiceEvent.SOCKET_MESSAGE,
+            user_id: "Server",
+            recipient_id: "All"
+        });
+
        return response["status"];
     }
 
-    async sendToUsername(message: ISocketMessage): Promise<boolean> {
-        const recipientUsername: string = message["recipientUsername"];
-        if(this.queryActiveConnection(recipientUsername)) {
-            const userSocket: ServerWebSocket = this._activeConnections.get(recipientUsername) as ServerWebSocket;
+    async sendToUserID(message: ISocketMessage): Promise<boolean> {
+        const recipientID: string = message["recipient_id"];
+        if(this.queryActiveConnection(recipientID)) {
+            const userSocket: ServerWebSocket = this._activeConnections.get(recipientID) as ServerWebSocket;
             if(userSocket.readyState === 1) {
                 userSocket.sendBinary(this._textEncoder.encode(JSON.stringify(message)));
                 await this._logService.addLog({
                     timestamp: new Date(Date.now()),
                     event: ELogServiceEvent.SOCKET_MESSAGE,
-                    username: message["senderUsername"],
-                    recipient_username: recipientUsername
+                    user_id: message["sender_id"],
+                    recipient_id: recipientID
                 });
                 return true;
             }
 
-            console.log(`Skipped broadcasting to ${recipientUsername}'s socket as busy.`)
+            console.log(`Skipped broadcasting to ${recipientID}'s socket as busy.`)
         }
 
         const response: MongoResponse = await this._mongoService.handleConnection
         (async (): Promise<MongoResponse> => {
-            const query = { username: recipientUsername };
+            const query = { user_id: recipientID };
             return await this._mongoService.insertOne(message, ECollection.messages);
         })
 

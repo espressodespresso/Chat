@@ -4,22 +4,25 @@ import {ELogRequestEvent, ELogRouteEvent} from "../enums/LogEvent.enum";
 import {IAuthResponse, IAuthService} from "../interfaces/AuthService.interface";
 import {ITokenPayload, ITokenService} from "../interfaces/TokenService.interface";
 import {ILogService} from "../interfaces/LogService.interface";
-import {IUserDetails} from "../interfaces/AccountService.interface";
+import {IAccountService, IUserDetails} from "../interfaces/AccountService.interface";
+import {IGenericResponse} from "../interfaces/utility/General.interface";
 
 export const authRoute = new Hono();
 const authService: IAuthService = ServiceFactory.createAuthService();
 const tokenService: ITokenService = ServiceFactory.createTokenService();
 const logService: ILogService = ServiceFactory.createLogService();
+const accountService: IAccountService = ServiceFactory.createAccountService();
 
 authRoute.post('/signup', async (c) => {
     const body: IUserDetails = await c.req.json();
     const username: string = body["username"];
     const response: IAuthResponse = await authService.signup(username, body["password"], body["email"]);
+
     await logService.addLog({
         timestamp: new Date(Date.now()),
         event: ELogRequestEvent.POST,
         route: ELogRouteEvent.AUTH,
-        username: username,
+        user_id: (await accountService.getUserIDByUsername(username) as IGenericResponse)["result"],
         status_code: response["code"]
     });
     return c.json(response, response["code"]);
@@ -33,11 +36,12 @@ authRoute.post('/login', async (c) => {
         timestamp: new Date(Date.now()),
         event: ELogRequestEvent.POST,
         route: ELogRouteEvent.AUTH,
-        username: username,
+        user_id: (await accountService.getUserIDByUsername(username) as IGenericResponse)["result"],
         status_code: response["code"]
     });
+
     try {
-        delete (response["token"] as ITokenPayload)["username"];
+        delete (response["token"] as ITokenPayload)["user_id"];
     } catch (error) {
         console.error("Login credentials error.");
     }
@@ -51,10 +55,10 @@ authRoute.post('/refresh', async (c) => {
         timestamp: new Date(Date.now()),
         event: ELogRequestEvent.POST,
         route: ELogRouteEvent.AUTH,
-        username: response["username"],
+        user_id: (await accountService.getUserIDByUsername(response["user_id"] as string) as IGenericResponse)["result"],
         status_code: response["code"]
     });
-    delete response["username"];
+    delete response["user_id"];
     return c.json(response, response["code"]);
 })
 
@@ -65,7 +69,7 @@ authRoute.post('/logout', async (c) => {
         timestamp: new Date(Date.now()),
         event: ELogRequestEvent.POST,
         route: ELogRouteEvent.AUTH,
-        username: response["message"].split(" ")[0],
+        user_id: response["message"].split(" ")[0],
         status_code: response["code"]
     });
     return c.json(response, response["code"]);

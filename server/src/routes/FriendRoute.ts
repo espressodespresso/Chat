@@ -18,8 +18,7 @@ friendRoute.patch('/addFriend', async (c) => {
     const payload: IUserDetails = c.get("jwtPayload")["data"];
     const recipient_user: IChatUser = (await c.req.json() as FriendAddRemoveRequest)["recipient_user"];
     const request_user: IChatUser = {
-        username: payload["username"] as string,
-        user_id: payload["user_id"] as string,
+        user_id: payload["user_id"] as string
     }
 
     if(!generalUtility.verifyUserAccess(request_user, recipient_user)) {
@@ -32,8 +31,8 @@ friendRoute.patch('/addFriend', async (c) => {
         timestamp: new Date(Date.now()),
         event: ELogRequestEvent.PATCH,
         route: ELogRouteEvent.FRIEND,
-        username: request_user["username"],
-        recipient_username: recipient_user["username"],
+        user_id: request_user["user_id"],
+        recipient_id: recipient_user["user_id"],
         status_code: response["code"]
     });
 
@@ -44,8 +43,7 @@ friendRoute.patch('/removeFriend', async (c) => {
     const payload: IUserDetails = c.get("jwtPayload")["data"];
     const recipient_user: IChatUser = (await c.req.json() as FriendAddRemoveRequest)["recipient_user"];
     const request_user: IChatUser = {
-        username: payload["username"] as string,
-        user_id: payload["user_id"] as string,
+        user_id: payload["user_id"] as string
     }
 
     if(!generalUtility.verifyUserAccess(request_user, recipient_user)) {
@@ -58,8 +56,8 @@ friendRoute.patch('/removeFriend', async (c) => {
         timestamp: new Date(Date.now()),
         event: ELogRequestEvent.PATCH,
         route: ELogRouteEvent.FRIEND,
-        username: request_user["username"],
-        recipient_username: recipient_user["username"],
+        user_id: request_user["user_id"],
+        recipient_id: recipient_user["user_id"],
         status_code: response["code"]
     });
 
@@ -70,8 +68,7 @@ friendRoute.patch('/block', async (c) => {
     const payload: IUserDetails = c.get("jwtPayload")["data"];
     const recipient_user: IChatUser = (await c.req.json() as FriendAddRemoveRequest)["recipient_user"];
     const request_user: IChatUser = {
-        username: payload["username"] as string,
-        user_id: payload["user_id"] as string,
+        user_id: payload["user_id"] as string
     }
 
     if(!generalUtility.verifyUserAccess(request_user, recipient_user)) {
@@ -84,8 +81,8 @@ friendRoute.patch('/block', async (c) => {
         timestamp: new Date(Date.now()),
         event: ELogRequestEvent.PATCH,
         route: ELogRouteEvent.FRIEND,
-        username: request_user["username"],
-        recipient_username: recipient_user["username"],
+        user_id: request_user["user_id"],
+        recipient_id: recipient_user["user_id"],
         status_code: response["code"]
     });
 
@@ -96,8 +93,7 @@ friendRoute.patch('/unblock', async (c) => {
     const payload: IUserDetails = c.get("jwtPayload")["data"];
     const recipient_user: IChatUser = (await c.req.json() as FriendAddRemoveRequest)["recipient_user"];
     const request_user: IChatUser = {
-        username: payload["username"] as string,
-        user_id: payload["user_id"] as string,
+        user_id: payload["user_id"] as string
     }
 
     if(!generalUtility.verifyUserAccess(request_user, recipient_user)) {
@@ -110,8 +106,8 @@ friendRoute.patch('/unblock', async (c) => {
         timestamp: new Date(Date.now()),
         event: ELogRequestEvent.PATCH,
         route: ELogRouteEvent.FRIEND,
-        username: request_user["username"],
-        recipient_username: recipient_user["username"],
+        user_id: request_user["user_id"],
+        recipient_id: recipient_user["user_id"],
         status_code: response["code"]
     });
 

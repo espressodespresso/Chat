@@ -11,7 +11,6 @@ export interface IChatDetails {
 
 export interface IChatUser {
     user_id: string;
-    username: string;
 }
 
 export interface IChatService {

@@ -20,7 +20,7 @@ const logService: ILogService = ServiceFactory.createLogService();
 const SocketRouteMessages = {
     NO_TOKEN_QUERY: "Token not provided as a query.",
     INVALID_TOKEN: "Could not verify token successfully.",
-    NO_USERNAME_QUERY: "Unable to properly close user as username not provided as a query.",
+    NO_USERID_QUERY: "Unable to properly close user as user ID is not provided as a query.",
     NO_ACTIVE_CONNECTION: "Unable to properly close user as unable to locate active connection."
 }
 
@@ -38,9 +38,9 @@ socketRoute.get('/', upgradeWebSocket(async (c) => {
                 token = queriedToken as string;
                 if(await tokenService.verifyAccessToken(token)) {
                     payload = decode(token)["payload"];
-                    const username: string = payload["username"] as string
+                    const user_id: string = payload["user_id"] as string
                     await socketService.addConnection({
-                        username: username,
+                        user_id: user_id,
                         socket: socket
                     });
 
@@ -49,7 +49,7 @@ socketRoute.get('/', upgradeWebSocket(async (c) => {
                         event: ELogRequestEvent.GET,
                         route: ELogRouteEvent.SOCKET,
                         message: "onOpen",
-                        username: username
+                        user_id: user_id
                     });
                 } else {
                     socket.close(1011, SocketRouteMessages.INVALID_TOKEN)
@@ -64,14 +64,14 @@ socketRoute.get('/', upgradeWebSocket(async (c) => {
                 const socketMessageString: string = ((event.data instanceof Uint8Array ? new TextDecoder().decode(event.data)
                     : event.data) as string);
                 const socketMessage: ISocketMessage = JSON.parse(socketMessageString);
-                await socketService.sendToUsername(socketMessage);
+                await socketService.sendToUserID(socketMessage);
 
                 await logService.addLog({
                     timestamp: new Date(Date.now()),
                     event: ELogRequestEvent.GET,
                     route: ELogRouteEvent.SOCKET,
                     message: "onMessage",
-                    username: socketMessage["senderUsername"]
+                    user_id: socketMessage["sender_id"]
                 });
             } catch (error) {
                 console.error(error);
@@ -81,13 +81,13 @@ socketRoute.get('/', upgradeWebSocket(async (c) => {
         async onClose(event, ws) {
             try {
                 const socket: ServerWebSocket = ws.raw as ServerWebSocket;
-                const queriedUsername: string | undefined = c.req.query('username');
-                if (!queriedUsername) {
-                    console.error(SocketRouteMessages.NO_USERNAME_QUERY);
+                const queriedUserID: string | undefined = c.req.query('user_id');
+                if (!queriedUserID) {
+                    console.error(SocketRouteMessages.NO_USERID_QUERY);
                 }
 
-                const username: string = queriedUsername as string;
-                const connection: IUserSocket | null = await socketService.getConnection(username);
+                const user_id: string = queriedUserID as string;
+                const connection: IUserSocket | null = await socketService.getConnection(user_id);
                 if(connection === null) {
                     console.error(SocketRouteMessages.NO_ACTIVE_CONNECTION);
                 }
@@ -98,7 +98,7 @@ socketRoute.get('/', upgradeWebSocket(async (c) => {
                     event: ELogRequestEvent.GET,
                     route: ELogRouteEvent.SOCKET,
                     message: "onClose",
-                    username: username
+                    user_id: user_id
                 });
             } catch (error) {
                 console.error(error);

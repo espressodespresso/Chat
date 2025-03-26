@@ -14,5 +14,5 @@ export interface ITokenPayload {
     refresh_token?: string;
     response?: MongoResponse;
     code?: ContentfulStatusCode;
-    username?: string;
+    user_id?: string;
 }

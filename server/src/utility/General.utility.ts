@@ -51,7 +51,7 @@ export class GeneralUtility implements IGeneralUtility {
     deleteUserInArray(recipient_user: IChatUser, array: IChatUser[]): IChatUser[] {
         for(let i = 0; i < array.length; i++) {
             const user: IChatUser = array[i];
-            if(user["user_id"] === recipient_user["user_id"] && user["username"] === recipient_user["username"]) {
+            if(user["user_id"] === recipient_user["user_id"]) {
                 array.splice(i, 1);
                 break;
             }

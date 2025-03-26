@@ -10,8 +10,8 @@ export interface ILogData {
     timestamp: Date,
     event: ELogServiceEvent | ELogRequestEvent,
     route?: ELogRouteEvent,
-    username?: string,
+    user_id?: string,
     message?: string,
-    recipient_username?: string,
+    recipient_id?: string,
     status_code?: ContentfulStatusCode
 }

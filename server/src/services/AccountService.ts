@@ -49,8 +49,9 @@ export class AccountService implements IAccountService {
             return inputValidationResponse;
         }
 
+        const user_id: string = this._generalUtility.generateID();
         const defaultData: IUserDetails = {
-            user_id: this._generalUtility.generateID(),
+            user_id: user_id,
             username: username,
             password: await hash(password, 10),
             email: email,
@@ -65,7 +66,7 @@ export class AccountService implements IAccountService {
             }
         }
 
-        const findUserDetails: IGenericResponse = await this.getAccountDetails(username);
+        const findUserDetails: IGenericResponse = await this.getAccountDetailsByUsername(username);
         if(findUserDetails["status"]) {
             return this._generalUtility.genericResponse(false, AccountServiceMessages.ACCOUNT_EXISTS, 409);
         }
@@ -79,7 +80,7 @@ export class AccountService implements IAccountService {
             await this._logService.addLog({
                 timestamp: new Date(Date.now()),
                 event: ELogServiceEvent.USER_SIGNUP,
-                username: username
+                user_id: user_id
             });
 
             return this._generalUtility.genericResponse(true, AccountServiceMessages.SIGNUP_SUCCESS, 200);
@@ -88,7 +89,55 @@ export class AccountService implements IAccountService {
         return this._generalUtility.genericResponse(false, AccountServiceMessages.SIGNUP_FAILURE, 401);
     }
 
-    async getAccountDetails(username: string): Promise<IGenericResponse>  {
+    async getUserIDByUsername(username: string): Promise<IGenericResponse> {
+        const response: MongoResponse = await this._mongoService.handleConnection
+        (async (): Promise<MongoResponse> => {
+            const query = { username: username };
+            return await this._mongoService.findOne(query, ECollection.users);
+        })
+
+        if(response["status"]) {
+            return this._generalUtility.genericResponse(true, (response["result"] as IUserDetails)["user_id"]);
+        }
+
+        return this._generalUtility.genericResponse(false, null);
+    }
+
+    async getUsernameByUserID(user_id: string): Promise<IGenericResponse> {
+        const response: MongoResponse = await this._mongoService.handleConnection
+        (async (): Promise<MongoResponse> => {
+            const query = { user_id: user_id };
+            return await this._mongoService.findOne(query, ECollection.users);
+        })
+
+        if(response["status"]) {
+            return this._generalUtility.genericResponse(true, (response["result"] as IUserDetails)["username"]);
+        }
+
+        return this._generalUtility.genericResponse(false, null);
+    }
+
+    async getAccountDetailsByID(user_id: string): Promise<IGenericResponse>  {
+        const response: MongoResponse = await this._mongoService.handleConnection
+        (async (): Promise<MongoResponse> => {
+            const query = { user_id: user_id };
+            return await this._mongoService.findOne(query, ECollection.users);
+        })
+
+        if(response["status"]) {
+            await this._logService.addLog({
+                timestamp: new Date(Date.now()),
+                event: ELogServiceEvent.ACCOUNT_DETAILS,
+                user_id: user_id
+            });
+
+            return this._generalUtility.genericResponse(true, response["result"], 200);
+        }
+
+        return this._generalUtility.genericResponse(false, AccountServiceMessages.GET_DETAILS_FAILURE, 400);
+    }
+
+    async getAccountDetailsByUsername(username: string): Promise<IGenericResponse>  {
         const response: MongoResponse = await this._mongoService.handleConnection
         (async (): Promise<MongoResponse> => {
             const query = { username: username };
@@ -99,7 +148,7 @@ export class AccountService implements IAccountService {
             await this._logService.addLog({
                 timestamp: new Date(Date.now()),
                 event: ELogServiceEvent.ACCOUNT_DETAILS,
-                username: username
+                user_id: response["result"]["user_id"],
             });
 
             return this._generalUtility.genericResponse(true, response["result"], 200);
@@ -108,15 +157,13 @@ export class AccountService implements IAccountService {
         return this._generalUtility.genericResponse(false, AccountServiceMessages.GET_DETAILS_FAILURE, 400);
     }
 
-    async getAccountsDetails(usernames: string[]): Promise<IGenericResponse>  {
+    async getAccountsDetails(user_ids: string[]): Promise<IGenericResponse>  {
         return await this._mongoService.handleConnection
         (async (): Promise<IGenericResponse> => {
             const accountsDetails: IUserDetails[] = [];
-            let accountsString: string = "";
-            for(let i = 0; i < usernames.length; i++) {
-                const username = usernames[i];
-                accountsString += ` ${username}`;
-                const query = { username: username };
+            for(let i = 0; i < user_ids.length; i++) {
+                const user_id = user_ids[i];
+                const query = { user_id: user_id };
                 const response: MongoResponse = await this._mongoService.findOne(query, ECollection.users);
                 if(response["status"]) {
                     accountsDetails.push(response["result"]);
@@ -130,7 +177,6 @@ export class AccountService implements IAccountService {
             await this._logService.addLog({
                 timestamp: new Date(Date.now()),
                 event: ELogServiceEvent.ACCOUNTS_DETAILS,
-                username: accountsString
             });
 
             return this._generalUtility.genericResponse(true, accountsDetails);
@@ -138,15 +184,15 @@ export class AccountService implements IAccountService {
     }
 
     async updateAccountDetails(data: IUserDetails): Promise<IGenericResponse> {
-        const username: string = data["username"];
-        const inputValidationResponse: IGenericResponse = this.inputValidation(username, data["password"], data["email"]);
+        const user_id: string = data["user_id"];
+        const inputValidationResponse: IGenericResponse = this.inputValidation(data["username"], data["password"], data["email"]);
         if(!inputValidationResponse["status"]) {
             return inputValidationResponse;
         }
 
         const response: MongoResponse = await this._mongoService.handleConnection
         (async (): Promise<MongoResponse> => {
-            const query = { username: username };
+            const query = { user_id: user_id };
             const response: MongoResponse = await this._mongoService.findOne(query, ECollection.users);
             if(!response["status"]) {
                 return this._generalUtility.genericResponse(false, AccountServiceMessages.ACCOUNT_EXISTS, 400);
@@ -159,7 +205,7 @@ export class AccountService implements IAccountService {
             await this._logService.addLog({
                 timestamp: new Date(Date.now()),
                 event: ELogServiceEvent.ACCOUNT_UPDATE_DETAILS,
-                username: username
+                user_id: user_id
             });
 
             return this._generalUtility.genericResponse(true, AccountServiceMessages.SIGNUP_SUCCESS, 200);
@@ -168,10 +214,10 @@ export class AccountService implements IAccountService {
         return this._generalUtility.genericResponse(false, AccountServiceMessages.UPDATE_DETAILS_FAILURE, 400);
     }
 
-    async updateUserOptions(username: string, data: IUserOptions): Promise<IGenericResponse> {
+    async updateUserOptions(user_id: string, data: IUserOptions): Promise<IGenericResponse> {
         const response: MongoResponse = await this._mongoService.handleConnection
         (async (): Promise<MongoResponse> => {
-            const query = { username: username };
+            const query = { user_id: user_id };
             const response: MongoResponse = await this._mongoService.findOne(query, ECollection.users);
 
             if(!response["status"]) {
@@ -191,7 +237,7 @@ export class AccountService implements IAccountService {
             await this._logService.addLog({
                 timestamp: new Date(Date.now()),
                 event: ELogServiceEvent.ACCOUNT_UPDATE_OPTIONS,
-                username: username
+                user_id: user_id
             });
 
             return this._generalUtility.genericResponse(true, AccountServiceMessages.UPDATE_OPTIONS_SUCCESS, 200);

@@ -47,17 +47,17 @@ export class FriendService implements IFriendService {
             return this._generalUtility.genericResponse(false, msg, 400);
         }
 
-        const requestUsername: string = request_user["username"];
-        const recipientUsername: string = recipient_user["username"];
+        const requestUserID: string = request_user["user_id"];
+        const recipientUserID: string = recipient_user["user_id"];
 
-        const userDetails: IGenericResponse = await this._accountService.getAccountsDetails([requestUsername, recipientUsername]);
+        const userDetails: IGenericResponse = await this._accountService.getAccountsDetails([requestUserID, recipientUserID]);
         if(!userDetails["status"]) {
             return this._generalUtility.genericResponse(false, FriendServiceMessages.UNABLE_LOCATE_USER, 400);
         }
 
         const accountsDetails: IUserDetails[] = userDetails["result"] as IUserDetails[];
-        const requestAccountDetails: IUserDetails = accountsDetails.find(u => u["username"] === requestUsername) as IUserDetails;
-        const recipientAccountDetails: IUserDetails = accountsDetails.find(u => u["username"] === recipientUsername) as IUserDetails;
+        const requestAccountDetails: IUserDetails = accountsDetails.find(u => u["user_id"] === requestUserID) as IUserDetails;
+        const recipientAccountDetails: IUserDetails = accountsDetails.find(u => u["user_id"] === recipientUserID) as IUserDetails;
 
         if(friend_list) {
             const response: ServiceCRUDResponse = {
@@ -75,15 +75,15 @@ export class FriendService implements IFriendService {
         return this._generalUtility.genericResponse(true, response);
     }
 
-    private async updateDatabaseLists(requestUsername: string, requestList: IChatUser[]
-                                      , msg: string, friend_list: boolean, recipientUsername?: string, recipientList?: IChatUser[]): Promise<IGenericResponse> {
+    private async updateDatabaseLists(requestUserID: string, requestList: IChatUser[]
+                                      , msg: string, friend_list: boolean, recipientUserID?: string, recipientList?: IChatUser[]): Promise<IGenericResponse> {
         return await this._mongoService.handleConnection
         (async (): Promise<IGenericResponse> => {
-            const requestQuery = { username: requestUsername };
+            const requestQuery = { user_id: requestUserID };
             let requestUpdate: {};
 
             if(friend_list) {
-                const recipientQuery = { username: recipientUsername };
+                const recipientQuery = { user_id: recipientUserID };
                 requestUpdate = {
                     $set: {
                         friend_list: requestList
@@ -122,30 +122,30 @@ export class FriendService implements IFriendService {
                     await this._logService.addLog({
                         timestamp: new Date(Date.now()),
                         event: ELogServiceEvent.FRIEND_ADD_USER,
-                        username: requestUsername,
-                        recipient_username: recipientUsername
+                        user_id: requestUserID,
+                        recipient_id: recipientUserID
                     });
                     break;
                 case FriendServiceMessages.REMOVE_FRIEND_SUCCESS:
                     await this._logService.addLog({
                         timestamp: new Date(Date.now()),
                         event: ELogServiceEvent.FRIEND_REMOVE_USER,
-                        username: requestUsername,
-                        recipient_username: recipientUsername
+                        user_id: requestUserID,
+                        recipient_id: recipientUserID
                     });
                     break;
                 case FriendServiceMessages.BLOCK_USER_SUCCESS:
                     await this._logService.addLog({
                         timestamp: new Date(Date.now()),
                         event: ELogServiceEvent.FRIEND_BLOCK_USER,
-                        username: requestUsername
+                        user_id: requestUserID
                     });
                     break;
                 case FriendServiceMessages.UNBLOCK_USER_SUCCESS:
                     await this._logService.addLog({
                         timestamp: new Date(Date.now()),
                         event: ELogServiceEvent.FRIEND_UNBLOCK_USER,
-                        username: requestUsername
+                        user_id: requestUserID
                     });
                     break;
             }
@@ -171,8 +171,8 @@ export class FriendService implements IFriendService {
         requestFriendList.push(recipient_user);
         recipientFriendList.push(request_user);
 
-        return this.updateDatabaseLists(request_user["username"], requestFriendList, FriendServiceMessages.ADD_FRIEND_SUCCESS
-            , true, recipient_user["username"], recipientFriendList);
+        return this.updateDatabaseLists(request_user["user_id"], requestFriendList, FriendServiceMessages.ADD_FRIEND_SUCCESS
+            , true, recipient_user["user_id"], recipientFriendList);
     }
 
     async removeFriend(request_user: IChatUser, recipient_user: IChatUser): Promise<IGenericResponse> {
@@ -192,8 +192,8 @@ export class FriendService implements IFriendService {
         requestFriendList = this._generalUtility.deleteUserInArray(recipient_user, requestFriendList);
         recipientFriendList = this._generalUtility.deleteUserInArray(request_user, recipientFriendList);
 
-        return this.updateDatabaseLists(request_user["username"], requestFriendList, FriendServiceMessages.ADD_FRIEND_SUCCESS
-            , true, recipient_user["username"], recipientFriendList);
+        return this.updateDatabaseLists(request_user["user_id"], requestFriendList, FriendServiceMessages.ADD_FRIEND_SUCCESS
+            , true, recipient_user["user_id"], recipientFriendList);
     }
 
     async blockFriend(request_user: IChatUser, recipient_user: IChatUser): Promise<IGenericResponse> {
@@ -210,7 +210,7 @@ export class FriendService implements IFriendService {
 
         requestBlockedUsers.push(recipient_user);
 
-        return this.updateDatabaseLists(request_user["username"], requestBlockedUsers, FriendServiceMessages.BLOCK_USER_SUCCESS, false);
+        return this.updateDatabaseLists(request_user["user_id"], requestBlockedUsers, FriendServiceMessages.BLOCK_USER_SUCCESS, false);
     }
 
     async unblockFriend(request_user: IChatUser, recipient_user: IChatUser): Promise<IGenericResponse> {
@@ -227,6 +227,6 @@ export class FriendService implements IFriendService {
 
         requestBlockedUsers = this._generalUtility.deleteUserInArray(recipient_user, requestBlockedUsers);
 
-        return this.updateDatabaseLists(request_user["username"], requestBlockedUsers, FriendServiceMessages.UNBLOCK_USER_SUCCESS, false);
+        return this.updateDatabaseLists(request_user["user_id"], requestBlockedUsers, FriendServiceMessages.UNBLOCK_USER_SUCCESS, false);
     }
 }

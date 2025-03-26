@@ -13,7 +13,7 @@ const TokenServiceMessages = {
     ERROR_DELETE_REFRESH_TOKEN: "Error occurred while deleting refresh token.",
     SUCCESS_REVOKE_REFRESH_TOKEN: "Successfully revoked refresh token from database.",
     ERROR_LOCATE_REFRESH_TOKEN: "Error occurred while locating refresh token.",
-    ERROR_LOCATE_USERNAME: "Error occurred while locating username.",
+    ERROR_LOCATE_USERID: "Error occurred while locating user id.",
     SUCCESS_INSERT_REFRESH_TOKEN: "Refresh token stored successfully.",
     ERROR_REFRESH_TOKEN_EXISTS: "Refresh token already exists, try again.",
     ERROR_UNKNOWN: "Unknown error occurred, try again later."
@@ -28,7 +28,7 @@ export class TokenService implements ITokenService{
         this._logService = ServiceFactory.createLogService();
     }
 
-    private getUsernameFromRefresh(refresh_token: string): string {
+    private getUserIDFromRefresh(refresh_token: string): string {
         const refreshPayload: JWTPayload = decode(refresh_token).payload;
         return refreshPayload["data"] as string;
     }
@@ -72,11 +72,11 @@ export class TokenService implements ITokenService{
                     }
                 }
 
-                const username: string = this.getUsernameFromRefresh(refresh_token);
+                const user_id: string = this.getUserIDFromRefresh(refresh_token);
                 return {
                     response: this._mongoService.objResponse(true, TokenServiceMessages.SUCCESS_REVOKE_REFRESH_TOKEN),
                     code: 200,
-                    username: username
+                    user_id: user_id
                 }
             })
         } catch (error) {
@@ -108,12 +108,12 @@ export class TokenService implements ITokenService{
                     };
                 }
 
-                const username: string = this.getUsernameFromRefresh(refresh_token);
-                const userQuery = { username: username };
+                const user_id: string = this.getUserIDFromRefresh(refresh_token);
+                const userQuery = { user_id: user_id };
                 response = await this._mongoService.findOne(userQuery, ECollection.users);
                 if(!response["status"]) {
                     return {
-                        response: this._mongoService.objResponse(false, TokenServiceMessages.ERROR_LOCATE_USERNAME),
+                        response: this._mongoService.objResponse(false, TokenServiceMessages.ERROR_LOCATE_USERID),
                         code: 401
                     };
                 }
@@ -132,7 +132,7 @@ export class TokenService implements ITokenService{
                 await this._logService.addLog({
                     timestamp: new Date(Date.now()),
                     event: ELogServiceEvent.REFRESH_TOKEN,
-                    username: username
+                    user_id: user_id
                 });
                 return returnPayload;
             })
@@ -151,7 +151,7 @@ export class TokenService implements ITokenService{
         }, (process.env.ACCESS_TOKEN_SECRET as string));
 
         const refreshToken: string = await sign({
-            data: data["username"],
+            data: data["user_id"],
             exp: Math.floor(Date.now() / 1000) + 60 * 55
         }, (process.env.REFRESH_TOKEN_SECRET as string));
 
@@ -185,7 +185,7 @@ export class TokenService implements ITokenService{
             access_token: token,
             refresh_token: refreshToken,
             response: response,
-            username: data["username"]
+            user_id: data["user_id"]
         };
     }
 }

@@ -23,8 +23,7 @@ chatRoute.post('/create', async (c) => {
     const payload: IUserDetails = c.get("jwtPayload")["data"];
     const createChatRequest: CreateChatRequest = await c.req.json();
     const creator_user: IChatUser = {
-        user_id: payload["user_id"] as string,
-        username: payload["username"] as string,
+        user_id: payload["user_id"] as string
     };
 
     const response: IGenericResponse = await chatService.createChat(createChatRequest["chat_name"]
@@ -33,7 +32,7 @@ chatRoute.post('/create', async (c) => {
         timestamp: new Date(Date.now()),
         event: ELogRequestEvent.POST,
         route: ELogRouteEvent.CHAT,
-        username: creator_user["username"],
+        user_id: creator_user["user_id"],
         status_code: response["code"]
     });
 
@@ -44,8 +43,7 @@ chatRoute.patch('/changeName', async (c) => {
     const payload: IUserDetails = c.get("jwtPayload")["data"];
     const changeChatNameRequest: ChangeChatNameRequest = await c.req.json();
     const user: IChatUser = {
-        user_id: payload["user_id"] as string,
-        username: payload["username"] as string,
+        user_id: payload["user_id"] as string
     };
     const response: IGenericResponse = await chatService.changeChatName(changeChatNameRequest["chat_id"]
         , user, changeChatNameRequest["new_name"]);
@@ -53,7 +51,7 @@ chatRoute.patch('/changeName', async (c) => {
         timestamp: new Date(Date.now()),
         event: ELogRequestEvent.PATCH,
         route: ELogRouteEvent.CHAT,
-        username: user["username"],
+        user_id: user["user_id"],
         status_code: response["code"]
     });
 
@@ -64,8 +62,7 @@ chatRoute.patch('/addAdmin', async (c) => {
     const payload: IUserDetails = c.get("jwtPayload")["data"];
     const addAdminRequest: UserAddRemoveRequest = await c.req.json();
     const request_user: IChatUser = {
-        user_id: payload["user_id"] as string,
-        username: payload["username"] as string,
+        user_id: payload["user_id"] as string
     };
 
     if(!generalUtility.verifyUserAccess(request_user, addAdminRequest["recipient_user"])) {
@@ -80,8 +77,8 @@ chatRoute.patch('/addAdmin', async (c) => {
         timestamp: new Date(Date.now()),
         event: ELogRequestEvent.PATCH,
         route: ELogRouteEvent.CHAT,
-        username: request_user["username"],
-        recipient_username: recipient_user["username"],
+        user_id: request_user["user_id"],
+        recipient_id: recipient_user["user_id"],
         status_code: response["code"]
     });
 
@@ -92,8 +89,7 @@ chatRoute.patch('/removeAdmin', async (c) => {
     const payload: IUserDetails = c.get("jwtPayload")["data"];
     const removeAdminRequest: UserAddRemoveRequest = await c.req.json();
     const request_user: IChatUser = {
-        user_id: payload["user_id"] as string,
-        username: payload["username"] as string,
+        user_id: payload["user_id"] as string
     };
 
     const recipient_user: IChatUser = removeAdminRequest["recipient_user"];
@@ -103,8 +99,8 @@ chatRoute.patch('/removeAdmin', async (c) => {
         timestamp: new Date(Date.now()),
         event: ELogRequestEvent.PATCH,
         route: ELogRouteEvent.CHAT,
-        username: request_user["username"],
-        recipient_username: recipient_user["username"],
+        user_id: request_user["user_id"],
+        recipient_id: recipient_user["user_id"],
         status_code: response["code"]
     });
 
@@ -115,8 +111,7 @@ chatRoute.patch('/addUser', async (c) => {
     const payload: IUserDetails = c.get("jwtPayload")["data"];
     const addUserRequest: UserAddRemoveRequest = await c.req.json();
     const request_user: IChatUser = {
-        user_id: payload["user_id"] as string,
-        username: payload["username"] as string,
+        user_id: payload["user_id"] as string
     };
 
     if(!generalUtility.verifyUserAccess(request_user, addUserRequest["recipient_user"])) {
@@ -131,8 +126,8 @@ chatRoute.patch('/addUser', async (c) => {
         timestamp: new Date(Date.now()),
         event: ELogRequestEvent.PATCH,
         route: ELogRouteEvent.CHAT,
-        username: request_user["username"],
-        recipient_username: recipient_user["username"],
+        user_id: request_user["user_id"],
+        recipient_id: recipient_user["user_id"],
         status_code: response["code"]
     });
 
@@ -143,8 +138,7 @@ chatRoute.patch('/removeUser', async (c) => {
     const payload: IUserDetails = c.get("jwtPayload")["data"];
     const removeUserRequest: UserAddRemoveRequest = await c.req.json();
     const request_user: IChatUser = {
-        user_id: payload["user_id"] as string,
-        username: payload["username"] as string,
+        user_id: payload["user_id"] as string
     };
 
     const recipient_user: IChatUser = removeUserRequest["recipient_user"];
@@ -154,8 +148,8 @@ chatRoute.patch('/removeUser', async (c) => {
         timestamp: new Date(Date.now()),
         event: ELogRequestEvent.PATCH,
         route: ELogRouteEvent.CHAT,
-        username: request_user["username"],
-        recipient_username: recipient_user["username"],
+        user_id: request_user["user_id"],
+        recipient_id: recipient_user["user_id"],
         status_code: response["code"]
     });
 
@@ -167,15 +161,14 @@ chatRoute.delete('/delete', async (c) => {
     const payload: IUserDetails = c.get("jwtPayload")["data"];
     const deleteChatRequest: DeleteChatRequest = await c.req.json();
     const request_user: IChatUser = {
-        user_id: payload["user_id"] as string,
-        username: payload["username"] as string,
+        user_id: payload["user_id"] as string
     };
     const response: IGenericResponse = await chatService.deleteChat(deleteChatRequest["chat_id"], request_user);
     await logService.addLog({
         timestamp: new Date(Date.now()),
         event: ELogRequestEvent.DELETE,
         route: ELogRouteEvent.CHAT,
-        username: request_user["username"],
+        user_id: request_user["user_id"],
         status_code: response["code"]
     });
 

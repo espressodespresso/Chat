@@ -48,7 +48,7 @@ export class AuthService implements IAuthService {
     }
 
     async login(username: string, password: string): Promise<IAuthResponse> {
-        const accountResponse: IGenericResponse = await this._accountService.getAccountDetails(username);
+        const accountResponse: IGenericResponse = await this._accountService.getAccountDetailsByUsername(username);
         if(!accountResponse["status"]) {
             return this.authResponse(false, AuthServiceMessages.LOGIN_FAILURE, 401);
         }
@@ -60,7 +60,7 @@ export class AuthService implements IAuthService {
             await this._logService.addLog({
                 timestamp: new Date(Date.now()),
                 event: ELogServiceEvent.USER_LOGIN,
-                username: username
+                user_id: data["user_id"]
             });
 
             return this.authResponse(true, AuthServiceMessages.LOGIN_SUCCESS, 200, await this._tokenService.generateLoginTokens(data));
@@ -71,7 +71,7 @@ export class AuthService implements IAuthService {
 
     async logout(data: ITokenPayload): Promise<IAuthResponse> {
         const response: ITokenPayload = await this._tokenService.revokeRefreshToken(data);
-        const findConnection: IUserSocket | null = await this._socketService.getConnection(response["username"] as string);
+        const findConnection: IUserSocket | null = await this._socketService.getConnection(response["user_id"] as string);
         if(findConnection === null) {
             return this.authResponse(false, AuthServiceMessages.LOGOUT_FAILURE, 401);
         }
@@ -79,7 +79,7 @@ export class AuthService implements IAuthService {
         await this._logService.addLog({
             timestamp: new Date(Date.now()),
             event: ELogServiceEvent.USER_LOGOUT,
-            username: response["username"]
+            user_id: response["user_id"]
         });
 
         return this.authResponse(true, await this._socketService.removeConnection(findConnection), 200);
