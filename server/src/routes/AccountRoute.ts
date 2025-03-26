@@ -20,7 +20,7 @@ const generalUtility: IGeneralUtility = generalUtilityInstance;
 const logService: ILogService = ServiceFactory.createLogService();
 
 accountRoute.get('/accountDetails', async (c) => {
-    const payload: JWTPayload = c.get("jwtPayload");
+    const payload: IUserDetails = c.get("jwtPayload")["data"];
     const accountDetailsRequest: GetAccountDetailsRequest = await c.req.json();
     const request_user: IChatUser = {
         username: payload["username"] as string,
@@ -45,7 +45,7 @@ accountRoute.get('/accountDetails', async (c) => {
 })
 
 accountRoute.put('/updateDetails', async (c) => {
-    const payload: JWTPayload = c.get("jwtPayload");
+    const payload: IUserDetails = c.get("jwtPayload")["data"];
     const updateAccountDetailsRequest: UpdateAccountDetailsRequest = await c.req.json();
     const recipientUserData: IUserDetails = updateAccountDetailsRequest["user_data"];
     const request_user: IChatUser = {
@@ -76,7 +76,7 @@ accountRoute.put('/updateDetails', async (c) => {
 })
 
 accountRoute.patch('/updateOptions', async (c) => {
-    const payload: JWTPayload = c.get("jwtPayload");
+    const payload: IUserDetails = c.get("jwtPayload")["data"];
     const updateAccountOptionsRequest: UpdateAccountOptionsRequest = await c.req.json();
     const request_user: IChatUser = {
         username: payload["username"] as string,

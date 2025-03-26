@@ -16,12 +16,13 @@ export class LogService implements ILogService {
 
     async addLog(data: ILogData): Promise<boolean> {
         data["log_id"] = this._generalUtility.generateID();
-        const response: MongoResponse = await this._mongoService.handleConnection
+        /*const response: MongoResponse = await this._mongoService.handleConnection
         (async (): Promise<MongoResponse> => {
             return await this._mongoService.insertOne(data, ECollection.logs);
         })
 
-        return response["status"];
+        return response["status"];*/
+        return true;
     }
 
 

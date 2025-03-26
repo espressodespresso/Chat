@@ -147,12 +147,12 @@ export class TokenService implements ITokenService{
     async generateLoginTokens(data: IUserDetails): Promise<ITokenPayload> {
         const token: string = await sign({
             data: data,
-            exp: Math.floor(Date.now() / 1000) + 60 * 5
+            exp: Math.floor(Date.now() / 1000) + 60 * 50
         }, (process.env.ACCESS_TOKEN_SECRET as string));
 
         const refreshToken: string = await sign({
             data: data["username"],
-            exp: Math.floor(Date.now() / 1000) + 60 * 15
+            exp: Math.floor(Date.now() / 1000) + 60 * 55
         }, (process.env.REFRESH_TOKEN_SECRET as string));
 
         const response: MongoResponse = await this._mongoService.handleConnection

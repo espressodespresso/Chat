@@ -16,9 +16,14 @@ export class SocketService implements ISocketService {
 
     private constructor() {
         this._activeConnections = new Map<string, ServerWebSocket>();
-        this._mongoService = ServiceFactory.createMongoService();
         this._textEncoder = new TextEncoder();
-        this._logService = ServiceFactory.createLogService();
+        this._mongoService = null as any;
+        this._logService = null as any;
+
+        setTimeout(() => {
+            this._mongoService = ServiceFactory.createMongoService();
+            this._logService = ServiceFactory.createLogService();
+        }, 0);
     }
 
     static getInstance(): SocketService {

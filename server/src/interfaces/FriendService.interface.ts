@@ -12,5 +12,4 @@ export interface ServiceCRUDResponse {
     requestFriendList?: IChatUser[];
     recipientFriendList?: IChatUser[];
     requestBlockedUsers?: IChatUser[];
-    recipientBlockedUsers?: IChatUser[];
 }

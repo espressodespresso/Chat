@@ -49,7 +49,7 @@ export class AuthService implements IAuthService {
 
     async login(username: string, password: string): Promise<IAuthResponse> {
         const accountResponse: IGenericResponse = await this._accountService.getAccountDetails(username);
-        if(!accountResponse["result"]) {
+        if(!accountResponse["status"]) {
             return this.authResponse(false, AuthServiceMessages.LOGIN_FAILURE, 401);
         }
 

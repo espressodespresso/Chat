@@ -2,12 +2,12 @@ import {Hono} from "hono";
 import {IFriendService} from "../interfaces/FriendService.interface";
 import {ServiceFactory} from "../services/ServiceFactory";
 import {ILogService} from "../interfaces/LogService.interface";
-import {JWTPayload} from "hono/dist/types/utils/jwt/types";
 import {FriendAddRemoveRequest} from "../interfaces/types/FriendRequest.types";
 import {IGeneralUtility, IGenericResponse} from "../interfaces/utility/General.interface";
 import {generalUtilityInstance} from "../utility/UtilityModule";
 import {IChatUser} from "../interfaces/ChatService.interface";
 import {ELogRequestEvent, ELogRouteEvent} from "../enums/LogEvent.enum";
+import {IUserDetails} from "../interfaces/AccountService.interface";
 
 export const friendRoute = new Hono();
 const friendService: IFriendService = ServiceFactory.createFriendService();
@@ -15,7 +15,7 @@ const logService: ILogService = ServiceFactory.createLogService();
 const generalUtility: IGeneralUtility = generalUtilityInstance;
 
 friendRoute.patch('/addFriend', async (c) => {
-    const payload: JWTPayload = c.get("jwtPayload");
+    const payload: IUserDetails = c.get("jwtPayload")["data"];
     const recipient_user: IChatUser = (await c.req.json() as FriendAddRemoveRequest)["recipient_user"];
     const request_user: IChatUser = {
         username: payload["username"] as string,
@@ -41,7 +41,7 @@ friendRoute.patch('/addFriend', async (c) => {
 })
 
 friendRoute.patch('/removeFriend', async (c) => {
-    const payload: JWTPayload = c.get("jwtPayload");
+    const payload: IUserDetails = c.get("jwtPayload")["data"];
     const recipient_user: IChatUser = (await c.req.json() as FriendAddRemoveRequest)["recipient_user"];
     const request_user: IChatUser = {
         username: payload["username"] as string,
@@ -67,7 +67,7 @@ friendRoute.patch('/removeFriend', async (c) => {
 })
 
 friendRoute.patch('/block', async (c) => {
-    const payload: JWTPayload = c.get("jwtPayload");
+    const payload: IUserDetails = c.get("jwtPayload")["data"];
     const recipient_user: IChatUser = (await c.req.json() as FriendAddRemoveRequest)["recipient_user"];
     const request_user: IChatUser = {
         username: payload["username"] as string,
@@ -93,7 +93,7 @@ friendRoute.patch('/block', async (c) => {
 })
 
 friendRoute.patch('/unblock', async (c) => {
-    const payload: JWTPayload = c.get("jwtPayload");
+    const payload: IUserDetails = c.get("jwtPayload")["data"];
     const recipient_user: IChatUser = (await c.req.json() as FriendAddRemoveRequest)["recipient_user"];
     const request_user: IChatUser = {
         username: payload["username"] as string,

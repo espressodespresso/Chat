@@ -12,6 +12,7 @@ import {ServiceFactory} from "../services/ServiceFactory";
 import {ELogRequestEvent, ELogRouteEvent} from "../enums/LogEvent.enum";
 import {ILogService} from "../interfaces/LogService.interface";
 import {generalUtilityInstance} from "../utility/UtilityModule";
+import {IUserDetails} from "../interfaces/AccountService.interface";
 
 export const chatRoute = new Hono();
 const chatService: IChatService = ServiceFactory.createChatService();
@@ -19,7 +20,7 @@ const logService: ILogService = ServiceFactory.createLogService();
 const generalUtility: IGeneralUtility = generalUtilityInstance;
 
 chatRoute.post('/create', async (c) => {
-    const payload: JWTPayload = c.get("jwtPayload");
+    const payload: IUserDetails = c.get("jwtPayload")["data"];
     const createChatRequest: CreateChatRequest = await c.req.json();
     const creator_user: IChatUser = {
         user_id: payload["user_id"] as string,
@@ -40,7 +41,7 @@ chatRoute.post('/create', async (c) => {
 })
 
 chatRoute.patch('/changeName', async (c) => {
-    const payload: JWTPayload = c.get("jwtPayload");
+    const payload: IUserDetails = c.get("jwtPayload")["data"];
     const changeChatNameRequest: ChangeChatNameRequest = await c.req.json();
     const user: IChatUser = {
         user_id: payload["user_id"] as string,
@@ -60,7 +61,7 @@ chatRoute.patch('/changeName', async (c) => {
 })
 
 chatRoute.patch('/addAdmin', async (c) => {
-    const payload: JWTPayload = c.get("jwtPayload");
+    const payload: IUserDetails = c.get("jwtPayload")["data"];
     const addAdminRequest: UserAddRemoveRequest = await c.req.json();
     const request_user: IChatUser = {
         user_id: payload["user_id"] as string,
@@ -88,7 +89,7 @@ chatRoute.patch('/addAdmin', async (c) => {
 })
 
 chatRoute.patch('/removeAdmin', async (c) => {
-    const payload: JWTPayload = c.get("jwtPayload");
+    const payload: IUserDetails = c.get("jwtPayload")["data"];
     const removeAdminRequest: UserAddRemoveRequest = await c.req.json();
     const request_user: IChatUser = {
         user_id: payload["user_id"] as string,
@@ -111,7 +112,7 @@ chatRoute.patch('/removeAdmin', async (c) => {
 })
 
 chatRoute.patch('/addUser', async (c) => {
-    const payload: JWTPayload = c.get("jwtPayload");
+    const payload: IUserDetails = c.get("jwtPayload")["data"];
     const addUserRequest: UserAddRemoveRequest = await c.req.json();
     const request_user: IChatUser = {
         user_id: payload["user_id"] as string,
@@ -139,7 +140,7 @@ chatRoute.patch('/addUser', async (c) => {
 })
 
 chatRoute.patch('/removeUser', async (c) => {
-    const payload: JWTPayload = c.get("jwtPayload");
+    const payload: IUserDetails = c.get("jwtPayload")["data"];
     const removeUserRequest: UserAddRemoveRequest = await c.req.json();
     const request_user: IChatUser = {
         user_id: payload["user_id"] as string,
@@ -163,7 +164,7 @@ chatRoute.patch('/removeUser', async (c) => {
 
 
 chatRoute.delete('/delete', async (c) => {
-    const payload: JWTPayload = c.get("jwtPayload");
+    const payload: IUserDetails = c.get("jwtPayload")["data"];
     const deleteChatRequest: DeleteChatRequest = await c.req.json();
     const request_user: IChatUser = {
         user_id: payload["user_id"] as string,

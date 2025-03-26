@@ -6,6 +6,7 @@ export interface IGeneralUtility {
     genericResponse(status: boolean, result: any, code?: ContentfulStatusCode): IGenericResponse;
     verifyUserAccess(request_username: IChatUser, recipient_username: IChatUser): boolean;
     noUserAccessString(): string;
+    deleteUserInArray(recipient_user: IChatUser, array: IChatUser[]): IChatUser[];
 }
 
 export interface IGenericResponse {

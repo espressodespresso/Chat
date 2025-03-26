@@ -66,7 +66,7 @@ export class AccountService implements IAccountService {
         }
 
         const findUserDetails: IGenericResponse = await this.getAccountDetails(username);
-        if(findUserDetails["result"]) {
+        if(findUserDetails["status"]) {
             return this._generalUtility.genericResponse(false, AccountServiceMessages.ACCOUNT_EXISTS, 409);
         }
 
@@ -123,7 +123,7 @@ export class AccountService implements IAccountService {
                 }
             }
 
-            if(accountsDetails.length > 0) {
+            if(accountsDetails.length <= 1) {
                 return this._generalUtility.genericResponse(false, null);
             }
 

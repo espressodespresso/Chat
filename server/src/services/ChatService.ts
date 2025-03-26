@@ -30,7 +30,11 @@ const ChatServiceMessages = {
     REMOVE_USER_FAILURE: "Unable to remove user from the chat.",
     USER_NOT_AUTHOR: "Unable to delete chat as user is not the chat author.",
     UNABLE_LOCATE_USER: "Could not locate user within chat, skipping...",
-    DELETE_CHAT_SUCCESS: "Successfully deleted the chat."
+    DELETE_CHAT_SUCCESS: "Successfully deleted the chat.",
+    CANNOT_REMOVE_AUTHOR: "You cannot remove the author from the users list.",
+    DUPLICATES_WITHIN_USERS: "The users list contains duplicates, remove and try again.",
+    DUPLICATES_WITHIN_ADMIN: "The admin list contains duplicates, remove and try again.",
+    DELETE_CHAT_FAILURE: "Unable to delete the chat."
 }
 
 export class ChatService implements IChatService {
@@ -48,6 +52,7 @@ export class ChatService implements IChatService {
 
     async createChat(chat_name: string, creator_user: IChatUser, users: IChatUser[]): Promise<IGenericResponse> {
         const chat_id: string = this._generalUtility.generateID()
+        users.push(creator_user);
         const defaultData: IChatDetails = {
             chat_id: chat_id,
             chat_name: chat_name,
@@ -55,6 +60,18 @@ export class ChatService implements IChatService {
             admin: [],
             author: creator_user,
             date_added: new Date(Date.now())
+        }
+
+        if(users.length > 1) {
+            let tempSetCheck: Set<string> = new Set();
+            for(let i = 0; i < users.length; i++) {
+                const userID: string = users[i]["user_id"];
+                if(tempSetCheck.has(userID)) {
+                    return this._generalUtility.genericResponse(false, ChatServiceMessages.DUPLICATES_WITHIN_USERS, 400);
+                }
+
+                tempSetCheck.add(userID);
+            }
         }
 
         const response: IGenericResponse = await this._mongoService.handleConnection
@@ -73,7 +90,7 @@ export class ChatService implements IChatService {
                     return this._generalUtility.genericResponse(false, ChatServiceMessages.CREATION_ADDUSER_FAILURE, 400);
                 }
 
-                const chat_list: string[] = response["result"] as string[];
+                const chat_list: string[] = (response["result"] as IUserDetails)["chat_list"] as string[];
                 chat_list.push(defaultData["chat_id"]);
                 const update = {
                     $set: {
@@ -144,7 +161,7 @@ export class ChatService implements IChatService {
                 const response: IGenericResponse = await this._mongoService.handleConnection
                 (async (): Promise<IGenericResponse> => {
                     const query = { chat_id: chat_id };
-                    const response: MongoResponse = await this._mongoService.findOne(query, ECollection.users);
+                    const response: MongoResponse = await this._mongoService.findOne(query, ECollection.chats);
                     const admin: IChatUser[] = (response["result"] as IChatDetails)["admin"];
                     admin.push(recipient_user);
                     const update = {
@@ -181,14 +198,14 @@ export class ChatService implements IChatService {
             (async (): Promise<MongoResponse> => {
                 const query = { chat_id: chat_id };
                 const response: MongoResponse = await this._mongoService.findOne(query, ECollection.chats);
-                const admin: IChatUser[] = (response["result"] as IChatDetails)["admin"];
-                const adminSet: Set<IChatUser> = new Set(admin);
-                adminSet.delete(recipient_user);
+                let admin: IChatUser[] = this._generalUtility.deleteUserInArray(recipient_user
+                    , (response["result"] as IChatDetails)["admin"]);
+
                 const update = {
                     $set: {
-                        admin: Array.from(adminSet)
+                        admin: admin
                     }
-                };
+                }
                 return await this._mongoService.updateOne(query, update, ECollection.chats);
             })
 
@@ -218,16 +235,34 @@ export class ChatService implements IChatService {
 
         const response: MongoResponse = await this._mongoService.handleConnection
         (async (): Promise<MongoResponse> => {
-            const query = { chat_id: chat_id };
-            const response: MongoResponse = await this._mongoService.findOne(query, ECollection.users);
+            const chatQuery = { chat_id: chat_id };
+            let response: MongoResponse = await this._mongoService.findOne(chatQuery, ECollection.chats);
             const users: IChatUser[] = (response["result"] as IChatDetails)["users"];
             users.push(recipient_user);
-            const update = {
+            const chatUpdate = {
                 $set: {
                     users: users
                 }
             };
-            return await this._mongoService.updateOne(query, update, ECollection.chats);
+            response = await this._mongoService.updateOne(chatQuery, chatUpdate, ECollection.chats);
+            if(!response["status"]) {
+                return response;
+            }
+
+            const userQuery = { username: recipient_user["username"] };
+            response = await this._mongoService.findOne(userQuery, ECollection.users);
+            if(!response["status"]) {
+                return response;
+            }
+
+            const userChatList: string[] = (response["result"] as IUserDetails)["chat_list"];
+            userChatList.push(chat_id);
+            const userUpdate = {
+                $set: {
+                    chat_list: userChatList
+                }
+            };
+            return await this._mongoService.updateOne(userQuery, userUpdate, ECollection.users);
         })
 
         if(response["status"]) {
@@ -247,34 +282,58 @@ export class ChatService implements IChatService {
 
     async removeUser(chat_id: string, request_user: IChatUser, recipient_user: IChatUser): Promise<IGenericResponse> {
         const verifyUser: IGenericResponse = await this.userCRUDChecks(chat_id, request_user, recipient_user, false);
+        console.log("1");
         if(verifyUser["status"]) {
             const response: MongoResponse = await this._mongoService.handleConnection
             (async (): Promise<MongoResponse> => {
-                const query = { chat_id: chat_id };
-                const response: MongoResponse = await this._mongoService.findOne(query, ECollection.chats);
-                const users: IChatUser[] = (response["result"] as IChatDetails)["users"];
-                const usersSet: Set<IChatUser> = new Set(users);
-                usersSet.delete(recipient_user);
-                const admin: IChatUser[] = (response["result"] as IChatDetails)["admin"];
-                const adminSet: Set<IChatUser> = new Set(admin);
+                console.log("1");
+                const chatQuery = { chat_id: chat_id };
+                let response: MongoResponse = await this._mongoService.findOne(chatQuery, ECollection.chats);
+                if((response["result"] as IChatDetails)["author"] === recipient_user) {
+                    return this._mongoService.objResponse(false, ChatServiceMessages.CANNOT_REMOVE_AUTHOR);
+                }
+                const users: IChatUser[] = this._generalUtility.deleteUserInArray(recipient_user
+                    , (response["result"] as IChatDetails)["users"]);
+                let admin: IChatUser[] = (response["result"] as IChatDetails)["admin"];
                 let update = {}
-                if(admin.includes(recipient_user)) {
-                    adminSet.delete(recipient_user);
+                if(admin.some(u => u["user_id"] === recipient_user["user_id"])) {
+                    admin = this._generalUtility.deleteUserInArray(recipient_user, admin);
                     update = {
                         $set: {
-                            users: Array.from(usersSet),
-                            admin: Array.from(adminSet)
+                            users: users,
+                            admin: admin
                         }
                     };
                 } else {
                     update = {
                         $set: {
-                            users: Array.from(usersSet)
+                            users: users
                         }
                     };
                 }
-                return await this._mongoService.updateOne(query, update, ECollection.chats);
+                response = await this._mongoService.updateOne(chatQuery, update, ECollection.chats);
+                if(!response["status"]) {
+                    return response;
+                }
+
+                const userQuery = { username: recipient_user["username"] };
+                response = await this._mongoService.findOne(userQuery, ECollection.users);
+                if(!response["status"]) {
+                    return response;
+                }
+
+                update = {
+                    $set: {
+                        chat_list: this.deleteChatInArray(chat_id, (response["result"] as IUserDetails)["chat_list"])
+                    }
+                };
+
+                return await this._mongoService.updateOne(userQuery, update, ECollection.users);
             })
+
+            if(!response["status"] && response["result"] === ChatServiceMessages.CANNOT_REMOVE_AUTHOR) {
+                return this._generalUtility.genericResponse(false, ChatServiceMessages.CANNOT_REMOVE_AUTHOR, 400);
+            }
 
             if(response["status"]) {
                 await this._logService.addLog({
@@ -305,7 +364,7 @@ export class ChatService implements IChatService {
             }
 
             const author: IChatUser = chatDetails["author"];
-            if(author !== request_user) {
+            if(author["user_id"] !== request_user["user_id"]) {
                 return this._generalUtility.genericResponse(false, ChatServiceMessages.USER_NOT_AUTHOR, 400);
             }
 
@@ -319,20 +378,23 @@ export class ChatService implements IChatService {
                     console.error(ChatServiceMessages.UNABLE_LOCATE_USER);
                 }
 
-                const userDetails : IUserDetails = userDetailsResponse["result"] as IUserDetails;
-                const chatsSet: Set<string> = new Set(userDetails["chat_list"]);
-                chatsSet.delete(chatDetails["chat_id"]);
                 const update = {
                     $set: {
-                        chat_list: Array.from(chatsSet)
+                        chat_list: this.deleteChatInArray(chatDetails["chat_id"]
+                            , (userDetailsResponse["result"] as IUserDetails)["chat_list"])
                     }
-                };
+                }
 
                 try {
                     await this._mongoService.updateOne(userQuery, update, ECollection.users);
                 } catch (error) {
                     console.error(ChatServiceMessages.UNABLE_LOCATE_USER);
                 }
+            }
+
+            response = await this._mongoService.deleteOne(chatQuery, ECollection.chats);
+            if(!response["status"]) {
+                return this._generalUtility.genericResponse(false, ChatServiceMessages.DELETE_CHAT_FAILURE, 400);
             }
 
             await this._logService.addLog({
@@ -344,6 +406,18 @@ export class ChatService implements IChatService {
 
             return this._generalUtility.genericResponse(true, ChatServiceMessages.DELETE_CHAT_SUCCESS, 200);
         })
+    }
+
+    private deleteChatInArray(chat_id: string, chat_list: string[]): string[] {
+        for(let i = 0; i < chat_list.length; i++) {
+            const curr_chat_id: string = chat_list[i];
+            if(curr_chat_id === chat_id) {
+                chat_list.splice(i, 1);
+                break;
+            }
+        }
+
+        return chat_list;
     }
 
     private async adminCRUDChecks(chat_id: string, request_user: IChatUser, recipient_user: IChatUser, add: boolean): Promise<IGenericResponse> {
@@ -360,16 +434,17 @@ export class ChatService implements IChatService {
     }
 
     private async userCRUDChecks(chat_id: string, request_user: IChatUser, recipient_user: IChatUser, add: boolean): Promise<IGenericResponse> {
-        if(request_user === recipient_user && add) {
+        if(request_user["user_id"] === recipient_user["user_id"] && add) {
             return this._generalUtility.genericResponse(false, ChatServiceMessages.CANNOT_ADD_YOURSELF, 400);
         }
 
-        if(await this.verifyUserInChat(chat_id, recipient_user)) {
+        if(await this.verifyUserInChat(chat_id, recipient_user) && add) {
             return this._generalUtility.genericResponse(false, ChatServiceMessages.USER_ALREADY_IN_CHAT, 400);
         }
 
         const verifyResponse: IGenericResponse = await this.verifyUserAccess(chat_id, request_user);
         if(!verifyResponse["status"]) {
+            console.log("d")
             return verifyResponse;
         }
 
@@ -382,7 +457,7 @@ export class ChatService implements IChatService {
             const query = { chat_id: chat_id };
             const response: MongoResponse =  await this._mongoService.findOne(query, ECollection.chats);
             const users: IChatUser[] = (response["result"] as IChatDetails)["users"];
-            return users.includes(user);
+            return users.some(u => u["user_id"] === user["user_id"]);
         })
     }
 
@@ -399,9 +474,9 @@ export class ChatService implements IChatService {
                 return this._generalUtility.genericResponse(false, ChatServiceMessages.NO_CHAT_WITH_ID, 400);
             }
 
-            if(admin && (response["result"] as IChatDetails)["author"] != user) {
+            if(admin && (response["result"] as IChatDetails)["author"]["user_id"] != user["user_id"]) {
                 const admins: IChatUser[] = (response["result"] as IChatDetails)["admin"];
-                if(!admins.includes(user)) {
+                if(!admins.some(u => u["user_id"] === user["user_id"])) {
                     return this._generalUtility.genericResponse(false, ChatServiceMessages.USER_NOT_ADMIN, 400);
                 }
             }
