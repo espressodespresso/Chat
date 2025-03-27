@@ -7,6 +7,9 @@ import {IMongoService, MongoResponse} from "../interfaces/MongoService.interface
 import {IAccountService, IUserDetails} from "../interfaces/AccountService.interface";
 import {ILogService} from "../interfaces/LogService.interface";
 import {IGeneralUtility, IGenericResponse} from "../interfaces/utility/General.interface";
+import {ISocketMessage, ISocketService} from "../interfaces/SocketService.interface";
+import {socketServiceInstance} from "./singleton/SocketModule";
+import {ESocketUpdateEvent, ESocketUpdateEventType} from "../enums/SocketEvent.enum";
 
 const ChatServiceMessages = {
     CREATION_FAILURE: "Unable to create the chat.",
@@ -34,7 +37,8 @@ const ChatServiceMessages = {
     CANNOT_REMOVE_AUTHOR: "You cannot remove the author from the users list.",
     DUPLICATES_WITHIN_USERS: "The users list contains duplicates, remove and try again.",
     DUPLICATES_WITHIN_ADMIN: "The admin list contains duplicates, remove and try again.",
-    DELETE_CHAT_FAILURE: "Unable to delete the chat."
+    DELETE_CHAT_FAILURE: "Unable to delete the chat.",
+    NO_NOTIFICATION_USER: "Unable to directly notify user using socket"
 }
 
 export class ChatService implements IChatService {
@@ -42,12 +46,14 @@ export class ChatService implements IChatService {
     private _generalUtility: IGeneralUtility;
     private _accountService: IAccountService;
     private _logService: ILogService;
+    private _socketService: ISocketService;
 
     constructor() {
         this._mongoService = ServiceFactory.createMongoService();
         this._generalUtility = generalUtilityInstance;
         this._accountService = ServiceFactory.createAccountService();
         this._logService = ServiceFactory.createLogService();
+        this._socketService = socketServiceInstance;
     }
 
     async createChat(chat_name: string, creator_user: IChatUser, users: IChatUser[]): Promise<IGenericResponse> {
@@ -103,6 +109,17 @@ export class ChatService implements IChatService {
                 if(!response["status"]) {
                     return this._generalUtility.genericResponse(false, ChatServiceMessages.CREATION_UPDATEUSER_FALIURE, 400);
                 }
+
+                // Function exists but already looping so may as well
+                const socketMessage: ISocketMessage = this._socketService.createSocketMessageUpdate(user_id, creator_user["user_id"], {
+                    event: ESocketUpdateEvent.CHAT,
+                    type: ESocketUpdateEventType.CREATE,
+                    id: chat_id
+                });
+
+                if(!await this._socketService.sendToActiveUserID(socketMessage)) {
+                    console.error(`${ChatServiceMessages.NO_NOTIFICATION_USER} to ${user_id}, likely offline.`);
+                }
             }
 
             return this._mongoService.objResponse(true, null);
@@ -141,6 +158,9 @@ export class ChatService implements IChatService {
         });
 
         if(response["status"]) {
+            await this.pushSocketUpdateToUsers(user["user_id"], chat_id, await this.getUsersInChat(chat_id)
+                , ESocketUpdateEventType.UPDATE);
+
             await this._logService.addLog({
                 timestamp: new Date(Date.now()),
                 event: ELogServiceEvent.CHAT_CHANGE_NAME,
@@ -158,18 +178,25 @@ export class ChatService implements IChatService {
         const verifyResponse: IGenericResponse = await this.adminCRUDChecks(chat_id, request_user, recipient_user, true);
         if(!verifyResponse["status"]) {
             if(verifyResponse["result"] === ChatServiceMessages.USER_NOT_ADMIN) {
-                const response: IGenericResponse = await this._mongoService.handleConnection
-                (async (): Promise<IGenericResponse> => {
+                const response: MongoResponse = await this._mongoService.handleConnection
+                (async (): Promise<MongoResponse> => {
                     const query = { chat_id: chat_id };
-                    const response: MongoResponse = await this._mongoService.findOne(query, ECollection.chats);
-                    const admin: IChatUser[] = (response["result"] as IChatDetails)["admin"];
+                    let response: MongoResponse = await this._mongoService.findOne(query, ECollection.chats);
+                    const chatDetails: IChatDetails = response["result"] as IChatDetails;
+                    const admin: IChatUser[] = chatDetails["admin"];
                     admin.push(recipient_user);
                     const update = {
                         $set: {
                             admin: admin
                         }
                     };
-                    return await this._mongoService.updateOne(query, update, ECollection.chats);
+                    response = await this._mongoService.updateOne(query, update, ECollection.chats);
+                    if(response["status"]) {
+                        await this.pushSocketUpdateToUsers(request_user["user_id"], chat_id, chatDetails["users"]
+                            , ESocketUpdateEventType.UPDATE);
+                    }
+
+                    return response;
                 })
 
                 if(response["status"]) {
@@ -197,16 +224,23 @@ export class ChatService implements IChatService {
             const response: MongoResponse = await this._mongoService.handleConnection
             (async (): Promise<MongoResponse> => {
                 const query = { chat_id: chat_id };
-                const response: MongoResponse = await this._mongoService.findOne(query, ECollection.chats);
+                let response: MongoResponse = await this._mongoService.findOne(query, ECollection.chats);
+                const chatDetails: IChatDetails = response["result"] as IChatDetails;
                 let admin: IChatUser[] = this._generalUtility.deleteUserInArray(recipient_user
-                    , (response["result"] as IChatDetails)["admin"]);
+                    , chatDetails["admin"]);
 
                 const update = {
                     $set: {
                         admin: admin
                     }
                 }
-                return await this._mongoService.updateOne(query, update, ECollection.chats);
+                response = await this._mongoService.updateOne(query, update, ECollection.chats);
+                if(response["status"]) {
+                    await this.pushSocketUpdateToUsers(request_user["user_id"], chat_id, chatDetails["users"]
+                        , ESocketUpdateEventType.UPDATE);
+                }
+
+                return response;
             })
 
             if(response["status"]) {
@@ -237,7 +271,8 @@ export class ChatService implements IChatService {
         (async (): Promise<MongoResponse> => {
             const chatQuery = { chat_id: chat_id };
             let response: MongoResponse = await this._mongoService.findOne(chatQuery, ECollection.chats);
-            const users: IChatUser[] = (response["result"] as IChatDetails)["users"];
+            const chatDetails: IChatDetails = response["result"] as IChatDetails;
+            const users: IChatUser[] = chatDetails["users"];
             users.push(recipient_user);
             const chatUpdate = {
                 $set: {
@@ -262,7 +297,13 @@ export class ChatService implements IChatService {
                     chat_list: userChatList
                 }
             };
-            return await this._mongoService.updateOne(userQuery, userUpdate, ECollection.users);
+            response = await this._mongoService.updateOne(userQuery, userUpdate, ECollection.users);
+            if(response["status"]) {
+                await this.pushSocketUpdateToUsers(request_user["user_id"], chat_id, chatDetails["users"]
+                    , ESocketUpdateEventType.UPDATE);
+            }
+
+            return response;
         })
 
         if(response["status"]) {
@@ -287,12 +328,13 @@ export class ChatService implements IChatService {
             (async (): Promise<MongoResponse> => {
                 const chatQuery = { chat_id: chat_id };
                 let response: MongoResponse = await this._mongoService.findOne(chatQuery, ECollection.chats);
-                if((response["result"] as IChatDetails)["author"] === recipient_user) {
+                const chatDetails: IChatDetails = response["result"] as IChatDetails;
+                if(chatDetails["author"] === recipient_user) {
                     return this._mongoService.objResponse(false, ChatServiceMessages.CANNOT_REMOVE_AUTHOR);
                 }
                 const users: IChatUser[] = this._generalUtility.deleteUserInArray(recipient_user
-                    , (response["result"] as IChatDetails)["users"]);
-                let admin: IChatUser[] = (response["result"] as IChatDetails)["admin"];
+                    , chatDetails["users"]);
+                let admin: IChatUser[] = chatDetails["admin"];
                 let update = {}
                 if(admin.some(u => u["user_id"] === recipient_user["user_id"])) {
                     admin = this._generalUtility.deleteUserInArray(recipient_user, admin);
@@ -326,7 +368,13 @@ export class ChatService implements IChatService {
                     }
                 };
 
-                return await this._mongoService.updateOne(userQuery, update, ECollection.users);
+                response = await this._mongoService.updateOne(userQuery, update, ECollection.users);
+                if(response["status"]) {
+                    await this.pushSocketUpdateToUsers(request_user["user_id"], chat_id, chatDetails["users"]
+                        , ESocketUpdateEventType.UPDATE);
+                }
+
+                return response;
             })
 
             if(!response["status"] && response["result"] === ChatServiceMessages.CANNOT_REMOVE_AUTHOR) {
@@ -388,6 +436,16 @@ export class ChatService implements IChatService {
                 } catch (error) {
                     console.error(ChatServiceMessages.UNABLE_LOCATE_USER);
                 }
+
+                const socketMessage: ISocketMessage = this._socketService.createSocketMessageUpdate(user_id, request_user["user_id"], {
+                    event: ESocketUpdateEvent.CHAT,
+                    type: ESocketUpdateEventType.DELETE,
+                    id: chat_id
+                });
+
+                if(!await this._socketService.sendToActiveUserID(socketMessage)) {
+                    console.error(`${ChatServiceMessages.NO_NOTIFICATION_USER} to ${user_id}, likely offline.`);
+                }
             }
 
             response = await this._mongoService.deleteOne(chatQuery, ECollection.chats);
@@ -404,6 +462,35 @@ export class ChatService implements IChatService {
 
             return this._generalUtility.genericResponse(true, ChatServiceMessages.DELETE_CHAT_SUCCESS, 200);
         })
+    }
+
+    private async getUsersInChat(chat_id: string): Promise<IChatUser[]> {
+        const response: MongoResponse = await this._mongoService.handleConnection
+        (async (): Promise<MongoResponse> => {
+            const query = { chat_id: chat_id };
+            return await this._mongoService.findOne(query, ECollection.chats);
+        });
+
+        if(response["status"]) {
+            return response["result"] as IChatUser[];
+        }
+
+        return [];
+    }
+
+    private async pushSocketUpdateToUsers(updater_id: string, chat_id: string, users: IChatUser[], type: ESocketUpdateEventType): Promise<void> {
+        for(let i = 0; i < users.length; i++) {
+            const user_id: string = users[i]["user_id"]
+            const socketMessage: ISocketMessage = this._socketService.createSocketMessageUpdate(user_id, updater_id, {
+                event: ESocketUpdateEvent.CHAT,
+                type: type,
+                id: chat_id
+            });
+
+            if(!await this._socketService.sendToActiveUserID(socketMessage)) {
+                console.error(`${ChatServiceMessages.NO_NOTIFICATION_USER} to ${user_id}, likely offline.`);
+            }
+        }
     }
 
     private deleteChatInArray(chat_id: string, chat_list: string[]): string[] {

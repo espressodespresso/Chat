@@ -2,10 +2,11 @@ import {ServiceFactory} from "../ServiceFactory";
 import {ECollection} from "../../enums/Collection.enum";
 import {ServerWebSocket} from "bun";
 import {ELogServiceEvent} from "../../enums/LogEvent.enum";
-import {ISocketMessage, ISocketService, IUserSocket} from "../../interfaces/SocketService.interface";
+import {ISocketDataUpdate, ISocketMessage, ISocketService, IUserSocket} from "../../interfaces/SocketService.interface";
 import {IMongoService, MongoResponse} from "../../interfaces/MongoService.interface";
 import {ILogService} from "../../interfaces/LogService.interface";
 import {IUserDetails} from "../../interfaces/AccountService.interface";
+import {ESocketEvent} from "../../enums/SocketEvent.enum";
 
 export class SocketService implements ISocketService {
     private static _instance: SocketService | null = null;
@@ -152,7 +153,7 @@ export class SocketService implements ISocketService {
        return response["status"];
     }
 
-    async sendToUserID(message: ISocketMessage): Promise<boolean> {
+    async sendToActiveUserID(message: ISocketMessage): Promise<boolean> {
         const recipientID: string = message["recipient_id"];
         if(this.queryActiveConnection(recipientID)) {
             const userSocket: ServerWebSocket = this._activeConnections.get(recipientID) as ServerWebSocket;
@@ -170,12 +171,45 @@ export class SocketService implements ISocketService {
             console.log(`Skipped broadcasting to ${recipientID}'s socket as busy.`)
         }
 
-        const response: MongoResponse = await this._mongoService.handleConnection
-        (async (): Promise<MongoResponse> => {
-            const query = { user_id: recipientID };
-            return await this._mongoService.insertOne(message, ECollection.messages);
-        })
+        return false;
+    }
 
-        return response["status"];
+    async sendToUserID(message: ISocketMessage): Promise<boolean> {
+        if(!await this.sendToActiveUserID(message)) {
+            const response: MongoResponse = await this._mongoService.handleConnection
+            (async (): Promise<MongoResponse> => {
+                return await this._mongoService.insertOne(message, ECollection.messages);
+            })
+
+            return response["status"];
+        }
+
+        return true;
+    }
+
+    createSocketMessage(recipient_id: string, sender_id: string, message: string): ISocketMessage {
+        return {
+            recipient_id: recipient_id,
+            sender_id: sender_id,
+            message: {
+                event: ESocketEvent.MESSAGE,
+                data: {
+                    message: message
+                }
+            },
+            timestamp: new Date(Date.now())
+        }
+    }
+
+    createSocketMessageUpdate(recipient_id: string, sender_id: string, data: ISocketDataUpdate): ISocketMessage {
+        return {
+            recipient_id: recipient_id,
+            sender_id: sender_id,
+            message: {
+                event: ESocketEvent.DATA_UPDATE,
+                data: data
+            },
+            timestamp: new Date(Date.now())
+        }
     }
 }

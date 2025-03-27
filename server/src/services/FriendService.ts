@@ -8,6 +8,9 @@ import {IAccountService, IUserDetails} from "../interfaces/AccountService.interf
 import {ILogService} from "../interfaces/LogService.interface";
 import {IChatUser} from "../interfaces/ChatService.interface";
 import {IGeneralUtility, IGenericResponse} from "../interfaces/utility/General.interface";
+import {ESocketUpdateEvent, ESocketUpdateEventType} from "../enums/SocketEvent.enum";
+import {ISocketMessage, ISocketService} from "../interfaces/SocketService.interface";
+import {socketServiceInstance} from "./singleton/SocketModule";
 
 const FriendServiceMessages = {
     CANNOT_ADD_YOURSELF: "You cannot add yourself as a friend.",
@@ -26,7 +29,8 @@ const FriendServiceMessages = {
     USER_ALREADY_BLOCKED: "User is already blocked.",
     USER_ALREADY_UNBLOCKED: "User is already unblocked.",
     BLOCK_USER_SUCCESS: "Successfully blocked user from account.",
-    UNBLOCK_USER_SUCCESS: "Successfully unblocked user from account."
+    UNBLOCK_USER_SUCCESS: "Successfully unblocked user from account.",
+    NO_NOTIFICATION_USER: "Unable to directly notify user using socket"
 }
 
 export class FriendService implements IFriendService {
@@ -34,12 +38,27 @@ export class FriendService implements IFriendService {
     private _accountService: IAccountService;
     private _generalUtility: IGeneralUtility;
     private _logService: ILogService;
+    private _socketService: ISocketService;
 
     constructor() {
         this._mongoService = ServiceFactory.createMongoService();
         this._accountService = ServiceFactory.createAccountService();
         this._generalUtility = generalUtilityInstance;
         this._logService = ServiceFactory.createLogService();
+        this._socketService = socketServiceInstance;
+    }
+
+    private async pushSocketUpdateToUser(request_user_id: string, recipient_user_id: string) {
+        const socketMessage: ISocketMessage = this._socketService.createSocketMessageUpdate(recipient_user_id
+            , request_user_id, {
+                event: ESocketUpdateEvent.FRIEND,
+                type: ESocketUpdateEventType.UPDATE,
+                id: request_user_id,
+        });
+
+        if(!await this._socketService.sendToActiveUserID(socketMessage)) {
+            console.error(`${FriendServiceMessages.NO_NOTIFICATION_USER} to ${recipient_user_id}, likely offline.`);
+        }
     }
 
     private async serviceCRUDChecks(request_user: IChatUser, recipient_user: IChatUser, msg: string, friend_list: boolean): Promise<IGenericResponse> {
@@ -119,6 +138,7 @@ export class FriendService implements IFriendService {
 
             switch (msg) {
                 case FriendServiceMessages.ADD_FRIEND_SUCCESS:
+                    await this.pushSocketUpdateToUser(requestUserID, recipientUserID as string);
                     await this._logService.addLog({
                         timestamp: new Date(Date.now()),
                         event: ELogServiceEvent.FRIEND_ADD_USER,
@@ -127,6 +147,7 @@ export class FriendService implements IFriendService {
                     });
                     break;
                 case FriendServiceMessages.REMOVE_FRIEND_SUCCESS:
+                    await this.pushSocketUpdateToUser(requestUserID, recipientUserID as string);
                     await this._logService.addLog({
                         timestamp: new Date(Date.now()),
                         event: ELogServiceEvent.FRIEND_REMOVE_USER,
