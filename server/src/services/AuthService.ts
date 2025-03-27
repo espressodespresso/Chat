@@ -69,8 +69,8 @@ export class AuthService implements IAuthService {
         }
     }
 
-    async logout(data: ITokenPayload): Promise<IAuthResponse> {
-        const response: ITokenPayload = await this._tokenService.revokeRefreshToken(data);
+    async logout(refresh_token: string): Promise<IAuthResponse> {
+        const response: ITokenPayload = await this._tokenService.revokeRefreshToken(refresh_token);
         const findConnection: IUserSocket | null = await this._socketService.getConnection(response["user_id"] as string);
         if(findConnection === null) {
             return this.authResponse(false, AuthServiceMessages.LOGOUT_FAILURE, 401);

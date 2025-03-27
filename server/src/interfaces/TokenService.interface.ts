@@ -4,8 +4,8 @@ import {MongoResponse} from "./MongoService.interface";
 
 export interface ITokenService {
     generateLoginTokens(data: IUserDetails): Promise<ITokenPayload>;
-    generateNewAuth(data: ITokenPayload): Promise<ITokenPayload>;
-    revokeRefreshToken(data: ITokenPayload): Promise<ITokenPayload>;
+    generateNewAuth(refresh_token: string): Promise<ITokenPayload>;
+    revokeRefreshToken(refresh_token: string): Promise<ITokenPayload>;
     verifyAccessToken(access_token: string): Promise<boolean>;
 }
 

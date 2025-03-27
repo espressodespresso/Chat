@@ -4,7 +4,7 @@ import {ITokenPayload} from "./TokenService.interface";
 export interface IAuthService {
     login(username: string, password: string): Promise<IAuthResponse>;
     signup(username: string, password: string, email: string): Promise<IAuthResponse>;
-    logout(data: ITokenPayload): Promise<IAuthResponse>;
+    logout(refresh_token: string): Promise<IAuthResponse>;
 }
 
 export interface IAuthResponse {

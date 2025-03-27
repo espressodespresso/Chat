@@ -51,8 +51,7 @@ export class TokenService implements ITokenService{
         }
     }
 
-    async revokeRefreshToken(data: ITokenPayload): Promise<ITokenPayload> {
-        const refresh_token: string = (data["refresh_token"] as string);
+    async revokeRefreshToken(refresh_token: string): Promise<ITokenPayload> {
         if(!await this.verifyRefreshToken(refresh_token)) {
             return {
                 response: this._mongoService.objResponse(false, TokenServiceMessages.INVALID_REFRESH_TOKEN),
@@ -87,8 +86,7 @@ export class TokenService implements ITokenService{
         }
     }
 
-    async generateNewAuth(data: ITokenPayload): Promise<ITokenPayload> {
-        const refresh_token: string = (data["refresh_token"] as string);
+    async generateNewAuth(refresh_token: string): Promise<ITokenPayload> {
         if(!await this.verifyRefreshToken(refresh_token)) {
             return {
                 response: this._mongoService.objResponse(false, TokenServiceMessages.INVALID_REFRESH_TOKEN),
