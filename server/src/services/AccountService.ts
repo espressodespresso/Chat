@@ -49,7 +49,7 @@ export class AccountService implements IAccountService {
             return inputValidationResponse;
         }
 
-        const user_id: string = this._generalUtility.generateID();
+        const user_id: string = await this._generalUtility.generateID(ECollection.users);
         const defaultData: IUserDetails = {
             user_id: user_id,
             username: username,

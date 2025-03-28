@@ -57,7 +57,7 @@ export class ChatService implements IChatService {
     }
 
     async createChat(chat_name: string, creator_user: IChatUser, users: IChatUser[]): Promise<IGenericResponse> {
-        const chat_id: string = this._generalUtility.generateID()
+        const chat_id: string = await this._generalUtility.generateID(ECollection.chats)
         users.push(creator_user);
         const defaultData: IChatDetails = {
             chat_id: chat_id,

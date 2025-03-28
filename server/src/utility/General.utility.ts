@@ -1,11 +1,17 @@
 import {ContentfulStatusCode} from "hono/dist/types/utils/http-status";
 import {IGeneralUtility, IGenericResponse} from "../interfaces/utility/General.interface";
 import {IChatUser} from "../interfaces/ChatService.interface";
+import {IMongoService, MongoResponse} from "../interfaces/MongoService.interface";
+import {ServiceFactory} from "../services/ServiceFactory";
+import {ECollection} from "../enums/Collection.enum";
 
 export class GeneralUtility implements IGeneralUtility {
     private static _instance: GeneralUtility | null = null;
+    private _mongoService: IMongoService;
 
-    private constructor() {}
+    private constructor() {
+        this._mongoService = ServiceFactory.createMongoService();
+    }
 
     static getInstance(): GeneralUtility {
         if(this._instance === null) {
@@ -15,11 +21,35 @@ export class GeneralUtility implements IGeneralUtility {
         return this._instance;
     }
 
-    generateID(): string {
-        const chars: string =  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    async generateID(collection: ECollection): Promise<string> {
+        let unique: boolean = false;
         let id: string = "";
-        for (let i = 0; i < 51; i++) {
-            id += chars.charAt(Math.floor(Math.random() * chars.length));
+        while (!unique) {
+            const chars: string =  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+            for (let i = 0; i < 21; i++) {
+                id += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+
+            const response: MongoResponse = await this._mongoService.handleConnection
+            (async (): Promise<MongoResponse> => {
+                switch (collection) {
+                    case ECollection.chats:
+                        const chatQuery = { chat_id: id }
+                        return await this._mongoService.findOne(chatQuery, ECollection.chats);
+                    case ECollection.logs:
+                        const logsQuery = { log_id: id }
+                        return await this._mongoService.findOne(logsQuery, ECollection.logs);
+                    case ECollection.users:
+                        const userQuery = { user_id: id }
+                        return await this._mongoService.findOne(userQuery, ECollection.users);
+                    default:
+                        return this._mongoService.objResponse(false, null);
+                }
+            })
+
+            if(!response["status"]) {
+                unique = true;
+            }
         }
 
         return id;
