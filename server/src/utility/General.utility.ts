@@ -10,7 +10,11 @@ export class GeneralUtility implements IGeneralUtility {
     private _mongoService: IMongoService;
 
     private constructor() {
-        this._mongoService = ServiceFactory.createMongoService();
+        this._mongoService = null as any;
+
+        setTimeout(() => {
+            this._mongoService = ServiceFactory.createMongoService();
+        }, 0);
     }
 
     static getInstance(): GeneralUtility {

@@ -72,7 +72,7 @@ export class AuthService implements IAuthService {
     async logout(refresh_token: string): Promise<IAuthResponse> {
         const response: ITokenPayload = await this._tokenService.revokeRefreshToken(refresh_token);
         const findConnection: IUserSocket | null = await this._socketService.getConnection(response["user_id"] as string);
-        if(findConnection === null) {
+        if(response["code"] !== 200) {
             return this.authResponse(false, AuthServiceMessages.LOGOUT_FAILURE, 401);
         }
 
@@ -82,6 +82,10 @@ export class AuthService implements IAuthService {
             user_id: response["user_id"]
         });
 
-        return this.authResponse(true, await this._socketService.removeConnection(findConnection), 200);
+        if(findConnection !== null) {
+            return this.authResponse(true, await this._socketService.removeConnection(findConnection), 200);
+        }
+
+        return this.authResponse(true, AuthServiceMessages.LOGIN_SUCCESS, 200);
     }
 }

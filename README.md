@@ -16,7 +16,8 @@ TBD
 * Typescript
 * Hono
 * MongoDB
-* TBD...
+* Zod
+* other packages...
 ***
 ## Setup
 TBD

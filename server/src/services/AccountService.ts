@@ -243,7 +243,7 @@ export class AccountService implements IAccountService {
             return this._generalUtility.genericResponse(true, AccountServiceMessages.UPDATE_OPTIONS_SUCCESS, 200);
         }
 
-        return this._generalUtility.genericResponse(false, AccountServiceMessages.UPDATE_OPTIONS_FAILURE, 200);
+        return this._generalUtility.genericResponse(false, AccountServiceMessages.UPDATE_OPTIONS_FAILURE, 400);
     }
 
     private inputValidation(username: string, password: string, email: string): IGenericResponse {
