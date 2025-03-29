@@ -2,13 +2,13 @@ import {Hono} from "hono";
 import {IFriendService} from "../interfaces/FriendService.interface";
 import {ServiceFactory} from "../services/ServiceFactory";
 import {ILogService} from "../interfaces/LogService.interface";
-import {FriendAddRemoveRequest} from "../types/FriendRequest.types";
+import {FriendAddRemoveRequest} from "@shared/types/FriendRequest.types";
 import {IGeneralUtility, IGenericResponse} from "../interfaces/utility/General.interface";
 import {generalUtilityInstance, invalidDataObj} from "../utility/UtilityModule";
 import {IChatUser} from "../interfaces/ChatService.interface";
 import {ELogRequestEvent, ELogRouteEvent} from "../enums/LogEvent.enum";
 import {IUserDetails} from "../interfaces/AccountService.interface";
-import {FriendAddRemoveRequestSchema} from "../schemas/FriendRequest.schema";
+import {FriendAddRemoveRequestSchema} from "@shared/schemas/FriendRequest.schema";
 
 export const friendRoute = new Hono();
 const friendService: IFriendService = ServiceFactory.createFriendService();

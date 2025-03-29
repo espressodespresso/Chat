@@ -6,11 +6,11 @@ import {generalUtilityInstance, invalidDataObj} from "../utility/UtilityModule";
 import {
     UpdateAccountDetailsRequest,
     UpdateAccountOptionsRequest,
-} from "../types/AccountRequest.types";
+} from "../../../shared/types/AccountRequest.types";
 import {IChatUser} from "../interfaces/ChatService.interface";
 import {ELogRequestEvent, ELogRouteEvent} from "../enums/LogEvent.enum";
 import {ILogService} from "../interfaces/LogService.interface";
-import {UpdateAccountDetailsRequestSchema, UpdateAccountOptionsRequestSchema} from "../schemas/AccountRequest.schema";
+import {UpdateAccountDetailsRequestSchema, UpdateAccountOptionsRequestSchema} from "@shared/schemas/AccountRequest.schema";
 
 export const accountRoute = new Hono();
 const accountService: IAccountService = ServiceFactory.createAccountService();

@@ -11,14 +11,14 @@ import {
     LogoutRequest,
     RefreshRequest,
     SignupRequest,
-} from "../types/AuthRequest.types";
+} from "@shared/types/AuthRequest.types";
 import {invalidDataObj} from "../utility/UtilityModule";
 import {
     LoginRequestSchema,
     LogoutRequestSchema,
     RefreshRequestSchema,
     SignupRequestSchema
-} from "../schemas/AuthRequest.schema";
+} from "@shared/schemas/AuthRequest.schema";
 
 export const authRoute = new Hono();
 const authService: IAuthService = ServiceFactory.createAuthService();

@@ -3,7 +3,7 @@
     "strict": true,
     "target": "ESNext",
     "module": "ESNext",
-    "moduleResolution": "node16",
+    "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "jsx": "preserve",
@@ -11,6 +11,10 @@
     "types": ["vite/client"],
     "noEmit": true,
     "isolatedModules": true,
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    "baseUrl": "./",
+    "paths": {
+      "@shared/*": ["../shared/*"]
+    }
   }
 }

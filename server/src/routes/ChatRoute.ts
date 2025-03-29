@@ -1,11 +1,10 @@
 import {Hono} from "hono";
-import {JWTPayload} from "hono/dist/types/utils/jwt/types";
 import {
     ChangeChatNameRequest,
     CreateChatRequest,
     DeleteChatRequest,
     UserAddRemoveRequest,
-} from "../types/ChatRequest.types";
+} from "@shared/types/ChatRequest.types";
 import {IGeneralUtility, IGenericResponse} from "../interfaces/utility/General.interface";
 import {IChatService, IChatUser} from "../interfaces/ChatService.interface";
 import {ServiceFactory} from "../services/ServiceFactory";
@@ -18,7 +17,8 @@ import {
     CreateChatRequestSchema,
     DeleteChatRequestSchema,
     UserAddRemoveRequestSchema
-} from "../schemas/ChatRequest.schema";
+} from "@shared/schemas/ChatRequest.schema";
+import {z} from "zod";
 
 export const chatRoute = new Hono();
 const chatService: IChatService = ServiceFactory.createChatService();

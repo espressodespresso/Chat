@@ -1,15 +1,55 @@
 @import "tailwindcss";
 
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto',
-    'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans',
-    'Helvetica Neue', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+#loginCard {
+  background-color: rgba(92, 122, 145, 0.75);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+#loginCard input {
+  background-color: rgba(108, 122, 137, 0.8);
+}
+
+#loginCard button {
+  background-color: rgba(108, 122, 159, 1);
+}
+
+#loginCard h1, h3 {
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.65));
+}
+
+#loginCard img {
+  animation: logo-shadow 15s ease-in-out infinite;
+}
+
+#loginContainer {
+  background: linear-gradient(45deg, #ADD8E6, #87CEEB, #6495ED, #4682B4);
+  background-size: 300% 300%;
+  animation: backwards 10s ease-in-out infinite;
+  height: 100vh;
+}
+
+@keyframes background {
+  0% {
+    background-position: 0 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+@keyframes logo-shadow {
+  0% {
+    filter: drop-shadow(0 0 15px rgba(205, 209, 228, 0.85));
+  }
+  50% {
+    filter: drop-shadow(0 0 35px rgba(205, 209, 228, 0.95));
+  }
+  100% {
+    filter: drop-shadow(0 0 15px rgba(205, 209, 228, 0.85));
+  }
 }

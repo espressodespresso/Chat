@@ -23,4 +23,7 @@ export class AuthService implements IAuthService {
         this._authStatus[1](value);
     }
 
+    async authenticate(username: string, password: string): Promise<void> {
+        
+    }
 }

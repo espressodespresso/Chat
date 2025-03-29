@@ -9,6 +9,10 @@ const routes = [
     {
         path: "/auth",
         component: lazy(() => import("./pages/Auth.tsx")),
+    },
+    {
+        path: "*",
+        component: lazy(() => import("./pages/NotFound.tsx")),
     }
 ]
 
