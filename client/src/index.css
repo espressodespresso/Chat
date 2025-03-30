@@ -15,7 +15,7 @@
   background-color: rgba(108, 122, 159, 1);
 }
 
-#loginCard h1, h3 {
+#loginCard h1, h3, p {
   filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.65));
 }
 

@@ -1,7 +1,37 @@
-import {A} from "@solidjs/router";
+import {A, useNavigate} from "@solidjs/router";
 import logo from "../assets/logo.svg";
+import {IAuthService} from "../interfaces/AuthService.interface.ts";
+import {createSignal, Signal} from "solid-js";
+import {authServiceInstance} from "../services/singleton/AuthModule.ts";
+import {GenericResponse} from "@shared/types/GenericResponse.types.ts";
+import {AuthResponse} from "@shared/types/AuthResponse.types.ts";
+
+const authService: IAuthService = authServiceInstance;
 
 export default function Auth() {
+    const [getUsername, setUsername] = createSignal("");
+    const [getPassword, setPassword] = createSignal("");
+    const [getLoading, setLoading] = createSignal(false);
+    const [getStatusMessage, setStatusMessage] = createSignal("‎");
+    const [getStatus, setStatus] = createSignal(false);
+    const navigate = useNavigate();
+
+    const handeLogin = async () => {
+        setLoading(true);
+        let response: AuthResponse;
+        try {
+            response = await authService.authenticate(getUsername(), getPassword())
+            setStatus(response["status"]);
+            setStatusMessage(response["message"]);
+        } finally {
+            setLoading(false);
+        }
+
+        if(response["status"]) {
+            navigate("/", {replace: true})
+        }
+    }
+
     return (
         <section id="authPage">
             <div id="loginContainer" class="content-center place-items-center text-center h-dvh">
@@ -12,17 +42,27 @@ export default function Auth() {
                     <div>
                         <h1 class="text-3xl font-bold">Chat App</h1>
                         <h3 class="text-xl font-light">Please enter your login credentials below</h3>
+                        <p class={`font-bold pt-2 ${getStatus() ? "text-green-500" : "text-red-700"}`}>{getStatusMessage()}</p>
                         <br/>
                         <input class="w-full rounded-md p-2 m-1 border-1 border-gray-500" type="text"
                                name="username" placeholder="Username"
-                               id="username_input"/>
+                               id="username_input" value={getUsername()}
+                               onInput={(e) => {
+                                   setUsername(e["currentTarget"]["value"]);
+                                   setStatusMessage("‎");
+                               }}/>
                         <input class="w-full rounded-md p-2 m-1 border-1 border-gray-500" type="password"
                                name="password" placeholder="Password"
-                               id="password_input"/>
+                               id="password_input" value={getPassword()}
+                               onInput={(e) => {
+                                   setPassword(e["currentTarget"]["value"]);
+                                   setStatusMessage("‎");
+                               }}/>
                         <br/>
                         <button type="submit"
-                                class="w-full rounded-md p-2 m-1 font-bold text-md hover:font-stretch-105% transition-transform">
-                            Login
+                                class="w-full rounded-md p-2 m-1 font-bold text-md hover:font-stretch-105% transition-transform"
+                                onClick={handeLogin}>
+                            {getLoading() ? "Validating..." : "Login"}
                         </button>
                         <br/>
                         <br/>

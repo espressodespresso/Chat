@@ -3,7 +3,7 @@ import {useNavigate} from "@solidjs/router";
 import {IAuthService} from "../interfaces/AuthService.interface.js";
 import {authServiceInstance} from "../services/singleton/AuthModule.js";
 
-export default function Auth(): JSXElement {
+export default function AuthEnforce(): JSXElement {
     const authService: IAuthService = authServiceInstance;
     const navigate = useNavigate();
 

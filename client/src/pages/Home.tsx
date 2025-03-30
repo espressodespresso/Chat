@@ -1,10 +1,10 @@
-import Auth from "../components/Auth.js";
 import Layout from "../components/Layout.js";
+import AuthEnforce from "../components/AuthEnforce.tsx";
 
 export default function Home() {
     return (
         <>
-            <Auth/>
+            <AuthEnforce/>
             <Layout>
                 <div class="grid grid-cols-1 place-items-center">
                     <h1>Hello - Home</h1>
