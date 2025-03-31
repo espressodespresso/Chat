@@ -25,7 +25,7 @@ REFRESH_TOKEN_SECRET=generatea256charstring
 ## API Endpoints
 A comprehensive list of all API routes and relevant details
 #### Quick Links
-* [Auth Route](#auth_route)
+* [Login Route](#auth_route)
 * [Account Route](#account_route)
 * [Chat Route](#chat_route)
 * [Friend Route](#friend_route)
@@ -47,7 +47,7 @@ A comprehensive list of all API routes and relevant details
 Unauthorized
 ````
 ***
-## Auth Route <a id="auth_route"></a>
+## Login Route <a id="auth_route"></a>
 ### User Signup
 **Method:** `POST`  
 **EndPoint:** `/auth/signup`  

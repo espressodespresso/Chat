@@ -1,5 +1,5 @@
 import Layout from "../components/Layout.js";
-import AuthEnforce from "../components/AuthEnforce.tsx";
+import AuthEnforce from "../components/auth/AuthEnforce.tsx";
 
 export default function Home() {
     return (

@@ -11,7 +11,7 @@ import {cors} from "hono/cors";
 const app = new Hono()
 const origin: string = process.env.ORIGIN as string;
 
-// Auth Route
+// Login Route
 app.use('/auth/*', cors({
   origin: origin,
   allowMethods: ['POST'],

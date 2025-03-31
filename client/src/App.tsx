@@ -7,8 +7,12 @@ const routes = [
         component: lazy(() => import("./pages/Home.tsx")),
     },
     {
-        path: "/auth",
-        component: lazy(() => import("./pages/Auth.tsx")),
+        path: "/login",
+        component: lazy(() => import("./pages/auth/Login.tsx")),
+    },
+    {
+        path: "/signup",
+        component: lazy(() => import("./pages/auth/Signup.tsx")),
     },
     {
         path: "*",

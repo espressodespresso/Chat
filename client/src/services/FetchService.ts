@@ -6,9 +6,15 @@ import {IAuthService} from "../interfaces/AuthService.interface.ts";
 import {authServiceInstance} from "./singleton/AuthModule.ts";
 import {TokenPayload} from "@shared/types/TokenPayload.types.ts";
 
-const authService: IAuthService = authServiceInstance;
-
 export class FetchService implements IFetchService {
+    private _authService: IAuthService = null as any;
+
+    constructor() {
+        setTimeout(() => {
+            this._authService = authServiceInstance;
+        }, 0);
+    }
+
     async request(fetchMethod: EFetchMethod, route: string, body?: JSON, json?: boolean): Promise<GenericResponse | AuthResponse> {
         const fetchOptions: RequestInit = {
             method: fetchMethod,
@@ -20,12 +26,8 @@ export class FetchService implements IFetchService {
         }
 
         const response: Response = await fetch(`${import.meta.env.VITE_API_ADDRESS}${route}`, fetchOptions);
-        if(response["status"] === 401 && await response.text() === 'Unauthorized') {
-            await authService.refreshAuthentication();
-        }
-
-        if(!response["ok"]) {
-            console.error(`Request failed with status code ${response["status"]}`);
+        if(response["status"] === 401 && response["headers"]["get"]("Content-Type") !== "application/json") {
+            await this._authService.refreshAuthentication();
         }
 
         return response.json();
