@@ -8,7 +8,7 @@ export default function AuthEnforce(): JSXElement {
     const navigate = useNavigate();
 
     onMount(() => {
-        if(!authService.getAppAuthStatus()) {
+        if(!authService.authStatus) {
             navigate("/login", {replace: true});
         }
     })

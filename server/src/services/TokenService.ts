@@ -7,6 +7,7 @@ import {ITokenPayload, ITokenService} from "../interfaces/TokenService.interface
 import {IMongoService, MongoResponse} from "../interfaces/MongoService.interface";
 import {ILogService} from "../interfaces/LogService.interface";
 import {IUserDetails} from "../interfaces/AccountService.interface";
+import process from "node:process";
 
 const TokenServiceMessages = {
     INVALID_REFRESH_TOKEN: "Refresh token invalid.",
@@ -145,12 +146,12 @@ export class TokenService implements ITokenService{
     async generateLoginTokens(data: IUserDetails): Promise<ITokenPayload> {
         const token: string = await sign({
             data: data,
-            exp: Math.floor(Date.now() / 1000) + 60 * 50
+            exp: Math.floor(Date.now() / 1000) + 60 * parseInt((process.env.ACCESS_TOKEN_EXPIRY as string))
         }, (process.env.ACCESS_TOKEN_SECRET as string));
 
         const refreshToken: string = await sign({
             data: data["user_id"],
-            exp: Math.floor(Date.now() / 1000) + 60 * 55
+            exp: Math.floor(Date.now() / 1000) + 60 * parseInt((process.env.REFRESH_TOKEN_EXPIRY as string))
         }, (process.env.REFRESH_TOKEN_SECRET as string));
 
         const response: MongoResponse = await this._mongoService.handleConnection

@@ -19,6 +19,9 @@ import {
     RefreshRequestSchema,
     SignupRequestSchema
 } from "@shared/schemas/AuthRequest.schema";
+import { getSignedCookie, setSignedCookie } from "hono/cookie";
+import * as process from "node:process";
+import {MongoResponse} from "../interfaces/MongoService.interface";
 
 export const authRoute = new Hono();
 const authService: IAuthService = ServiceFactory.createAuthService();
@@ -50,6 +53,30 @@ authRoute.post('/login', async (c) => {
         const loginRequest: LoginRequest = LoginRequestSchema.parse(await c.req.json());
         const username: string = loginRequest["username"];
         const response: IAuthResponse = await authService.login(username, loginRequest["password"]);
+
+        if(response["status"]) {
+            const tokens: ITokenPayload = response["token"] as ITokenPayload;
+            const cookie_secret: string = process.env.COOKIE_SECRET as string;
+            const access_token: string = tokens["access_token"] as string;
+            const refresh_token: string = tokens["refresh_token"] as string;
+
+            await setSignedCookie(c, "access_token", access_token, cookie_secret, {
+                httpOnly: true,
+                secure: true,
+                sameSite: "Strict",
+                maxAge: 60 * parseInt((process.env.ACCESS_TOKEN_EXPIRY as string))
+            });
+
+            await setSignedCookie(c, "refresh_token", refresh_token, cookie_secret, {
+                httpOnly: true,
+                secure: true,
+                sameSite: "Strict",
+                maxAge: 60 * parseInt((process.env.REFRESH_TOKEN_EXPIRY as string))
+            });
+
+            delete response["token"];
+        }
+
         await logService.addLog({
             timestamp: new Date(Date.now()),
             event: ELogRequestEvent.POST,
@@ -57,12 +84,6 @@ authRoute.post('/login', async (c) => {
             user_id: (await accountService.getUserIDByUsername(username) as IGenericResponse)["result"],
             status_code: response["code"]
         });
-
-        try {
-            delete (response["token"] as ITokenPayload)["user_id"];
-        } catch (error) {
-            console.error("Login credentials error.");
-        }
         return c.json(response, response["code"]);
     } catch (error) {
         return c.json(invalidDataObj, invalidDataObj["code"]);
@@ -71,8 +92,37 @@ authRoute.post('/login', async (c) => {
 
 authRoute.post('/refresh', async (c) => {
     try {
-        const refreshRequest: RefreshRequest = RefreshRequestSchema.parse(await c.req.json());
-        const response: ITokenPayload = await tokenService.generateNewAuth(refreshRequest["refresh_token"]);
+        const cookie_secret: string = process.env.COOKIE_SECRET as string;
+        const refresh_token: string | false | undefined = await getSignedCookie(c, cookie_secret, "refresh_token");
+
+        if(!refresh_token) {
+            return c.text("Unauthorized", 401);
+        }
+
+        const response: ITokenPayload = await tokenService.generateNewAuth(refresh_token)
+
+        if((response["response"] as MongoResponse)["status"]) {
+            const access_token: string = response["access_token"] as string;
+            const refresh_token: string = response["refresh_token"] as string;
+
+            await setSignedCookie(c, "access_token", access_token, cookie_secret, {
+                httpOnly: true,
+                secure: true,
+                sameSite: "Strict",
+                maxAge: 60 * parseInt((process.env.ACCESS_TOKEN_EXPIRY as string))
+            });
+
+            await setSignedCookie(c, "refresh_token", refresh_token, cookie_secret, {
+                httpOnly: true,
+                secure: true,
+                sameSite: "Strict",
+                maxAge: 60 * parseInt((process.env.REFRESH_TOKEN_EXPIRY as string))
+            });
+
+            delete response["access_token"];
+            delete response["refresh_token"];
+        }
+
         await logService.addLog({
             timestamp: new Date(Date.now()),
             event: ELogRequestEvent.POST,
@@ -80,8 +130,9 @@ authRoute.post('/refresh', async (c) => {
             user_id: (await accountService.getUserIDByUsername(response["user_id"] as string) as IGenericResponse)["result"],
             status_code: response["code"]
         });
-        delete response["user_id"];
-        return c.json(response, response["code"]);
+
+
+        return c.redirect(c.req.query('redirect') as string);
     } catch (error) {
         return c.json(invalidDataObj, invalidDataObj["code"]);
     }
@@ -89,8 +140,34 @@ authRoute.post('/refresh', async (c) => {
 
 authRoute.post('/logout', async (c) => {
     try {
-        const logoutRequest: LogoutRequest = LogoutRequestSchema.parse(await c.req.json());
-        const response: IAuthResponse = await authService.logout(logoutRequest["refresh_token"]);
+        const cookie_secret: string = process.env.COOKIE_SECRET as string;
+        const refresh_token: string | false | undefined = await getSignedCookie(c, cookie_secret, "refresh_token");
+
+        console.log(refresh_token);
+        if(!refresh_token) {
+            return c.text("Unauthorized", 401);
+        }
+
+        const response: IAuthResponse = await authService.logout(refresh_token);
+
+        const access_token: string | false | undefined = await getSignedCookie(c, cookie_secret, "access_token");
+        const date: Date = new Date(Date.now());
+        if(access_token) {
+            await setSignedCookie(c, "access_token", access_token, cookie_secret, {
+                httpOnly: true,
+                secure: true,
+                sameSite: "Strict",
+                maxAge: 0
+            });
+        }
+
+        await setSignedCookie(c, "refresh_token", refresh_token, cookie_secret, {
+            httpOnly: true,
+            secure: true,
+            sameSite: "Strict",
+            maxAge: 0
+        });
+
         await logService.addLog({
             timestamp: new Date(Date.now()),
             event: ELogRequestEvent.POST,
@@ -98,6 +175,8 @@ authRoute.post('/logout', async (c) => {
             user_id: response["message"].split(" ")[0],
             status_code: response["code"]
         });
+
+
         return c.json(response, response["code"]);
     } catch (error) {
         return c.json(invalidDataObj, invalidDataObj["code"]);

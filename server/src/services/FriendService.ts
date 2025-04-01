@@ -202,6 +202,7 @@ export class FriendService implements IFriendService {
             return serviceCRUDChecks;
         }
 
+
         let requestFriendList: IChatUser[] = (serviceCRUDChecks["result"] as ServiceCRUDResponse)["requestFriendList"]  as IChatUser[];
         let recipientFriendList: IChatUser[] = (serviceCRUDChecks["result"] as ServiceCRUDResponse)["recipientFriendList"] as IChatUser[];
 

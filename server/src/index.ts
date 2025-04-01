@@ -7,9 +7,12 @@ import {socketRoute} from "./routes/SocketRoute";
 import {chatRoute} from "./routes/ChatRoute";
 import {friendRoute} from "./routes/FriendRoute";
 import {cors} from "hono/cors";
+import {ensureValidAccessCookieMiddleware} from "./middleware/EnsureValidAccessCookie.middleware";
+import * as process from "node:process";
 
 const app = new Hono()
 const origin: string = process.env.ORIGIN as string;
+
 
 // Login Route
 app.use('/auth/*', cors({
@@ -27,7 +30,9 @@ app.use('/account/*', cors({
   allowHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 }));
-app.use('/account/*', jwt({ secret: (process.env.ACCESS_TOKEN_SECRET as string) }));
+app.use('/account/*', ensureValidAccessCookieMiddleware);
+app.use('/account/*', jwt({ secret: (process.env.ACCESS_TOKEN_SECRET as string)
+  , cookie: {key: "access_token", secret: process.env.COOKIE_SECRET}}));
 app.route('/account', accountRoute);
 
 // Socket Route
@@ -37,6 +42,7 @@ app.use('/socket/*', cors({
   allowHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 }))
+app.use('/socket/*', ensureValidAccessCookieMiddleware);
 app.use('/socket/*'); // Cannot use JWT Middleware due to WebSocket Route
 app.route('/socket', socketRoute);
 
@@ -47,7 +53,9 @@ app.use('/chat/*', cors({
   allowHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 }))
-app.use('/chat/*', jwt({ secret: (process.env.ACCESS_TOKEN_SECRET as string) }));
+app.use('/chat/*', ensureValidAccessCookieMiddleware);
+app.use('/chat/*', jwt({ secret: (process.env.ACCESS_TOKEN_SECRET as string)
+  , cookie: {key: "access_token", secret: process.env.COOKIE_SECRET}}));
 app.route('/chat', chatRoute);
 
 // Friend Route
@@ -57,7 +65,9 @@ app.use('/friend/*', cors({
   allowHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 }))
-app.use('/friend/*', jwt({ secret: (process.env.ACCESS_TOKEN_SECRET as string) }));
+app.use('/friend/*', ensureValidAccessCookieMiddleware);
+app.use('/friend/*', jwt({ secret: (process.env.ACCESS_TOKEN_SECRET as string)
+  , cookie: {key: "access_token", secret: process.env.COOKIE_SECRET}}));
 app.route('/friend', friendRoute);
 
 export default {

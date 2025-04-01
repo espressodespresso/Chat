@@ -18,7 +18,8 @@ export class FetchService implements IFetchService {
     async request(fetchMethod: EFetchMethod, route: string, body?: JSON, json?: boolean): Promise<GenericResponse | AuthResponse> {
         const fetchOptions: RequestInit = {
             method: fetchMethod,
-            headers: {"Content-Type": "application/json", "Authorization": `Bearer ${localStorage.getItem("access_token")}`},
+            headers: {"Content-Type": "application/json", "Authorization": `Bearer `},
+            credentials: "include",
         }
 
         if(fetchMethod !== "GET" && body) {
@@ -27,7 +28,7 @@ export class FetchService implements IFetchService {
 
         const response: Response = await fetch(`${import.meta.env.VITE_API_ADDRESS}${route}`, fetchOptions);
         if(response["status"] === 401 && response["headers"]["get"]("Content-Type") !== "application/json") {
-            await this._authService.refreshAuthentication();
+            this._authService.authStatus = false;
         }
 
         return response.json();

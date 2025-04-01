@@ -36,7 +36,7 @@ export default function Login() {
     }
 
     onMount(() => {
-        if(authService.getAppAuthStatus()) {
+        if(authService.authStatus) {
             navigate("/", {replace: true});
         }
     })

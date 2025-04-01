@@ -7,14 +7,14 @@ import {ECollection} from "../enums/Collection.enum";
 
 export class GeneralUtility implements IGeneralUtility {
     private static _instance: GeneralUtility | null = null;
-    private _mongoService: IMongoService;
+    //private _mongoService: IMongoService;
 
     private constructor() {
-        this._mongoService = null as any;
+       // this._mongoService = null as any;
 
-        setTimeout(() => {
-            this._mongoService = ServiceFactory.createMongoService();
-        }, 0);
+       // setTimeout(() => {
+       //     this._mongoService = ServiceFactory.createMongoService();
+       // }, 20);
     }
 
     static getInstance(): GeneralUtility {
@@ -34,20 +34,21 @@ export class GeneralUtility implements IGeneralUtility {
                 id += chars.charAt(Math.floor(Math.random() * chars.length));
             }
 
-            const response: MongoResponse = await this._mongoService.handleConnection
+            const mongoService: IMongoService = ServiceFactory.createMongoService();
+            const response: MongoResponse = await mongoService.handleConnection
             (async (): Promise<MongoResponse> => {
                 switch (collection) {
                     case ECollection.chats:
                         const chatQuery = { chat_id: id }
-                        return await this._mongoService.findOne(chatQuery, ECollection.chats);
+                        return await mongoService.findOne(chatQuery, ECollection.chats);
                     case ECollection.logs:
                         const logsQuery = { log_id: id }
-                        return await this._mongoService.findOne(logsQuery, ECollection.logs);
+                        return await mongoService.findOne(logsQuery, ECollection.logs);
                     case ECollection.users:
                         const userQuery = { user_id: id }
-                        return await this._mongoService.findOne(userQuery, ECollection.users);
+                        return await mongoService.findOne(userQuery, ECollection.users);
                     default:
-                        return this._mongoService.objResponse(false, null);
+                        return mongoService.objResponse(false, null);
                 }
             })
 
