@@ -22,6 +22,7 @@ import {
 import { getSignedCookie, setSignedCookie } from "hono/cookie";
 import * as process from "node:process";
 import {MongoResponse} from "../interfaces/MongoService.interface";
+import {UserAuthorisedMessage} from "../services/AuthService";
 
 export const authRoute = new Hono();
 const authService: IAuthService = ServiceFactory.createAuthService();
@@ -132,7 +133,7 @@ authRoute.post('/refresh', async (c) => {
         });
 
 
-        return c.redirect(c.req.query('redirect') as string);
+        return c.redirect(c.req.query('redirect') as string, 307);
     } catch (error) {
         return c.json(invalidDataObj, invalidDataObj["code"]);
     }
@@ -143,7 +144,6 @@ authRoute.post('/logout', async (c) => {
         const cookie_secret: string = process.env.COOKIE_SECRET as string;
         const refresh_token: string | false | undefined = await getSignedCookie(c, cookie_secret, "refresh_token");
 
-        console.log(refresh_token);
         if(!refresh_token) {
             return c.text("Unauthorized", 401);
         }
@@ -178,6 +178,26 @@ authRoute.post('/logout', async (c) => {
 
 
         return c.json(response, response["code"]);
+    } catch (error) {
+        return c.json(invalidDataObj, invalidDataObj["code"]);
+    }
+})
+
+authRoute.post('/status', async (c) => {
+    try {
+        const cookie_secret: string = process.env.COOKIE_SECRET as string;
+        const access_token: string | false | undefined = await getSignedCookie(c, cookie_secret, "access_token");
+
+        if(!access_token) {
+            const refresh_token: string | false | undefined = await getSignedCookie(c, cookie_secret, "refresh_token");
+            if(refresh_token) {
+                return c.redirect('/auth/refresh?redirect=/auth/status', 307);
+            }
+
+            return c.text("Unauthorized", 401);
+        }
+
+        return c.json(authService.authResponse(true, UserAuthorisedMessage, 200), 200);
     } catch (error) {
         return c.json(invalidDataObj, invalidDataObj["code"]);
     }

@@ -28,7 +28,11 @@ export class FetchService implements IFetchService {
 
         const response: Response = await fetch(`${import.meta.env.VITE_API_ADDRESS}${route}`, fetchOptions);
         if(response["status"] === 401 && response["headers"]["get"]("Content-Type") !== "application/json") {
-            this._authService.authStatus = false;
+            return  {
+                status: false,
+                code: 401,
+                message: "Unauthorized"
+            }
         }
 
         return response.json();

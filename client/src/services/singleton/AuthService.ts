@@ -10,11 +10,9 @@ import {TokenPayload} from "@shared/types/TokenPayload.types.ts";
 export class AuthService implements IAuthService {
     private static _instance: AuthService | null = null;
     private _fetchService: IFetchService;
-    private _authStatus: boolean;
 
     private constructor() {
         this._fetchService = ServiceFactory.createFetchService();
-        this._authStatus = false;
     }
 
     static getInstance(): AuthService {
@@ -25,12 +23,8 @@ export class AuthService implements IAuthService {
         return this._instance;
     }
 
-    get authStatus(): boolean {
-        return this._authStatus;
-    }
-
-    set authStatus(value: boolean) {
-        this._authStatus = value;
+    async getAuthStatus(): Promise<AuthResponse> {
+        return await this._fetchService.request(EFetchMethod.POST, "/auth/status") as AuthResponse;
     }
 
     async authenticate(username: string, password: string): Promise<AuthResponse> {
@@ -39,15 +33,11 @@ export class AuthService implements IAuthService {
             password: password
         }
 
-        const response: AuthResponse = await this._fetchService.request(EFetchMethod.POST, "/auth/login", JSON.parse(JSON.stringify(request))) as AuthResponse;
-        this._authStatus = response["status"];
-        return response;
+        return await this._fetchService.request(EFetchMethod.POST, "/auth/login", JSON.parse(JSON.stringify(request))) as AuthResponse;
     }
 
     async logout(): Promise<AuthResponse> {
-        const response: AuthResponse = await this._fetchService.request(EFetchMethod.POST, "/auth/logout") as AuthResponse;
-        this._authStatus = false;
-        return response;
+        return await this._fetchService.request(EFetchMethod.POST, "/auth/logout") as AuthResponse;
     }
 
     /*async refreshAuthentication(): Promise<void> {

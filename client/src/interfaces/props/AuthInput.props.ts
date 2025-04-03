@@ -5,5 +5,6 @@ export interface AuthInputProps {
     setData: Setter<string>,
     setStatusMessage: Setter<string>,
     name: string,
-    placeholder: string
+    placeholder: string,
+    type: string,
 }

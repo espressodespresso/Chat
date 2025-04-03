@@ -35,8 +35,9 @@ export default function Login() {
         }
     }
 
-    onMount(() => {
-        if(authService.authStatus) {
+    onMount(async () => {
+        const response: AuthResponse = await authService.getAuthStatus();
+        if(response["status"]) {
             navigate("/", {replace: true});
         }
     })
@@ -47,8 +48,8 @@ export default function Login() {
             <h3 class="text-xl font-light">Please enter your login credentials below</h3>
             <p class={`font-bold pt-2 ${getStatus() ? "text-green-500" : "text-red-700"}`}>{getStatusMessage()}</p>
             <br/>
-            <AuthInput getData={getUsername} setData={setUsername} setStatusMessage={setStatusMessage} name={"username"} placeholder={"Username"} />
-            <AuthInput getData={getPassword} setData={setPassword} setStatusMessage={setStatusMessage} name={"password"} placeholder={"password"} />
+            <AuthInput getData={getUsername} setData={setUsername} setStatusMessage={setStatusMessage} name={"username"} placeholder={"Username"} type="text" />
+            <AuthInput getData={getPassword} setData={setPassword} setStatusMessage={setStatusMessage} name={"password"} placeholder={"Password"} type="password" />
             <AuthButton handleAuthClick={handeLogin} getLoading={getLoading} buttonText="Login" />
             <br/>
             <br/>

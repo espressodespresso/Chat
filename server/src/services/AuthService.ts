@@ -21,6 +21,8 @@ const AuthServiceMessages = {
     LOGOUT_FAILURE: "Unable to log out successfully."
 }
 
+export const UserAuthorisedMessage: string = "User is authorised.";
+
 export class AuthService implements IAuthService {
     private _mongoService: IMongoService;
     private _tokenService: ITokenService;
@@ -36,7 +38,7 @@ export class AuthService implements IAuthService {
         this._socketService = socketServiceInstance;
     }
 
-    private authResponse(status: boolean, message: string, code: ContentfulStatusCode, token?: ITokenPayload): IAuthResponse {
+    authResponse(status: boolean, message: string, code: ContentfulStatusCode, token?: ITokenPayload): IAuthResponse {
         return token !== undefined ? { status, message, code, token } : { status, message, code };
     }
 
