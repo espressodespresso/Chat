@@ -21,7 +21,7 @@ export default function Home() {
         <>
             <AuthEnforce/>
             <Layout id="HomePage">
-                <div class="grid grid-cols-1 place-items-center">
+                <div class="grid grid-cols-1 place-items-center bg-[#1E2A4A] h-dvh">
                     <h1>Hello - Home</h1>
                     <button type="submit"
                             class="w-40 bg-amber-200 rounded-md p-2 m-1 font-bold text-md hover:font-stretch-105% transition-transform"

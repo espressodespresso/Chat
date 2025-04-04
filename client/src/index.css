@@ -30,6 +30,23 @@
   height: 100vh;
 }
 
+.spacer {
+  aspect-ratio: 900/100;
+  width: 100%;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 101% 101%;
+  display: block;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  transform: translate(0, 0);
+}
+
+.layer {
+  background-image: url("assets/layer.svg");
+}
+
 @keyframes background {
   0% {
     background-position: 0 50%;

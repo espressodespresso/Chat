@@ -1,4 +1,4 @@
-import {AuthInputProps} from "../../interfaces/props/AuthInput.props.ts";
+import {AuthInputProps} from "../../interfaces/props/auth/AuthInput.props.ts";
 
 export default function AuthInput(props: AuthInputProps) {
     return (

@@ -1,4 +1,4 @@
-import {AuthRedirectProps} from "../../interfaces/props/AuthRedirect.props.ts";
+import {AuthRedirectProps} from "../../interfaces/props/auth/AuthRedirect.props.ts";
 import {A} from "@solidjs/router";
 
 export default function AuthRedirect(props: AuthRedirectProps) {
