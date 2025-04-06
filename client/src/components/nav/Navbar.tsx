@@ -14,7 +14,7 @@ export default function Navbar() {
         try {
             setLoading(true);
             const response: AuthResponse = await authServiceInstance.logout();
-            if(response["status"]) {
+            if(response["status"] || response["code"] === 401) {
                 navigate("/login", {replace: true});
             }
         } finally {

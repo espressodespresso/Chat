@@ -18,7 +18,7 @@ export class FetchService implements IFetchService {
     async request(fetchMethod: EFetchMethod, route: string, body?: JSON, json?: boolean): Promise<GenericResponse | AuthResponse> {
         const fetchOptions: RequestInit = {
             method: fetchMethod,
-            headers: {"Content-Type": "application/json", "Authorization": `Bearer `},
+            headers: {"Content-Type": "application/json"},
             credentials: "include",
         }
 

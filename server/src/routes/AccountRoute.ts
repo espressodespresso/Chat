@@ -17,6 +17,23 @@ const accountService: IAccountService = ServiceFactory.createAccountService();
 const generalUtility: IGeneralUtility = generalUtilityInstance;
 const logService: ILogService = ServiceFactory.createLogService();
 
+accountRoute.get('/getUsername', async (c) => {
+    const payload: IUserDetails = c.get("jwtPayload")["data"];
+    const user_id: string = payload["user_id"] as string;
+    const recipient_id: string = c.req.query("user_id") as string;
+    const response: IGenericResponse = await accountService.getUsernameByUserID(recipient_id);
+    await logService.addLog({
+        timestamp: new Date(Date.now()),
+        event: ELogRequestEvent.GET,
+        route: ELogRouteEvent.ACCOUNT,
+        user_id: user_id,
+        recipient_id: recipient_id,
+        status_code: response["code"]
+    });
+
+    return c.json(response, response["code"]);
+})
+
 accountRoute.get('/accountDetails', async (c) => {
     const payload: IUserDetails = c.get("jwtPayload")["data"];
     const user_id: string = payload["user_id"] as string;

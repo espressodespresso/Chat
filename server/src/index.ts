@@ -13,12 +13,13 @@ import * as process from "node:process";
 const app = new Hono()
 const origin: string = process.env.ORIGIN as string;
 
+//allowHeaders: ["Content-Type", "Authorization"],
 
 // Login Route
 app.use('/auth/*', cors({
   origin: origin,
   allowMethods: ['POST'],
-  allowHeaders: ["Content-Type", "Authorization"],
+  allowHeaders: ["Content-Type"],
   credentials: true,
 }))
 app.route('/auth/', authRoute);
@@ -27,7 +28,7 @@ app.route('/auth/', authRoute);
 app.use('/account/*', cors({
   origin: origin,
   allowMethods: ['GET', 'PUT', 'PATCH'],
-  allowHeaders: ["Content-Type", "Authorization"],
+  allowHeaders: ["Content-Type"],
   credentials: true,
 }));
 app.use('/account/*', ensureValidAccessCookieMiddleware);
@@ -39,7 +40,7 @@ app.route('/account', accountRoute);
 app.use('/socket/*', cors({
   origin: origin,
   allowMethods: ['GET'],
-  allowHeaders: ["Content-Type", "Authorization"],
+  allowHeaders: ["Content-Type"],
   credentials: true,
 }))
 app.use('/socket/*', ensureValidAccessCookieMiddleware);
@@ -50,7 +51,7 @@ app.route('/socket', socketRoute);
 app.use('/chat/*', cors({
   origin: origin,
   allowMethods: ['POST', 'PATCH', 'DELETE'],
-  allowHeaders: ["Content-Type", "Authorization"],
+  allowHeaders: ["Content-Type"],
   credentials: true,
 }))
 app.use('/chat/*', ensureValidAccessCookieMiddleware);
@@ -62,7 +63,7 @@ app.route('/chat', chatRoute);
 app.use('/friend/*', cors({
   origin: origin,
   allowMethods: ['PATCH'],
-  allowHeaders: ["Content-Type", "Authorization"],
+  allowHeaders: ["Content-Type"],
   credentials: true,
 }))
 app.use('/friend/*', ensureValidAccessCookieMiddleware);

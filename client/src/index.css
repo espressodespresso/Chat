@@ -23,6 +23,18 @@
   animation: logo-shadow 15s ease-in-out infinite;
 }
 
+.homeCard {
+  background-color: rgba(20, 34, 66, 0.75);
+  backdrop-filter: blur(5px);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  -webkit-backdrop-filter: blur(5px);
+  border: 1px solid rgba(52, 89, 176, 0.37);
+}
+
+.homeCard h1 {
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.65));
+}
+
 .authContainer {
   background: linear-gradient(45deg, #ADD8E6, #87CEEB, #6495ED, #4682B4);
   background-size: 300% 300%;
@@ -45,6 +57,26 @@
 
 .layer {
   background-image: url("assets/layer.svg");
+}
+
+.spinner {
+  width: 5rem;
+  height: 5rem;
+  border: 10px solid rgb(162, 194, 255);
+  border-bottom-color: transparent;
+  border-radius: 50%;
+  display: inline-block;
+  box-sizing: border-box;
+  animation: rotation 1s linear infinite;
+}
+
+@keyframes rotation {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes background {
